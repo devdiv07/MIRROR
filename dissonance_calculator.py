@@ -14,9 +14,9 @@ def load_all_data():
     """
 
     try:
-        insider_df = pd.read_csv('data/insider_filings.csv')
+        insider_df = pd.read_csv('data/insider_transactions.csv')
     except:
-        print("⚠ Warning: No insider data found. Run SEC_INSIDER.PY first.")
+        print("⚠ Warning: No insider data found. Run insider_parser.py first.")
         insider_df = pd.DataFrame()
     try:
         news_df = pd.read_csv('data/news_sentiment_summary.csv')
@@ -49,42 +49,39 @@ def calculate_insider_signals(ticker, insider_df):
     Form 4 to see if it was a buy or sell transaction.
     """
     if insider_df.empty:
-        return 0 #No data = neutral signal
-    # filter for this ticker 
-    ticker_filings = insider_df[insider_df['ticker']==ticker]
+        return 0.0, "No Data"
 
-    if len(ticker_filings) == 0:
-        return 0 #No filings for this ticker = neutral signal
-    
-    # Count filings in last 30 days vs last 90 days
-    ticker_filings['filing_date'] = pd.to_datetime(ticker_filings['filing_date'])
-    recent_cutoff = pd.Timestamp.now() - pd.Timedelta(days=30)
-    older_cutoff = pd.Timestamp.now() - pd.Timedelta(days=90)
+    ticker_tx = insider_df[insider_df['ticker'] == ticker].copy()
+    if len(ticker_tx) == 0:
+        return 0.0, "No transactions"
 
-    recent_filings = len(ticker_filings[ticker_filings['filing_date'] > recent_cutoff])
-    older_filings = len(ticker_filings[
-    (ticker_filings['filing_date'] > older_cutoff) &
-    (ticker_filings['filing_date'] <= recent_cutoff)
-    ])
+    ticker_tx['date'] = pd.to_datetime(ticker_tx['date'], errors='coerce')
+    cutoff = pd.Timestamp.now() - pd.Timedelta(days=30)
+    recent = ticker_tx[ticker_tx['date'] > cutoff]
 
-    # if recent activity is 2x normal = signal
-    if older_filings > 0:
-        activity_ratio = recent_filings / (older_filings / 2)  # Normalize to 30-day periods
+    if len(recent) == 0:
+        return 0.0, "No recent transactions (30d)"
+
+    net_dollars = recent['dollar_value'].sum()
+    buy_count   = (recent['transaction_type'] == 'BUY').sum()
+    sell_count  = (recent['transaction_type'] == 'SELL').sum()
+
+    # Signal strength based on net dollar volume of open-market trades.
+    # Buying = insider paid market price = conviction signal.
+    # Thresholds match insider_parser.net_insider_signal_per_ticker().
+    if net_dollars > 1_000_000:
+        signal = 0.7    # Heavy net buying
+    elif net_dollars > 100_000:
+        signal = 0.3    # Mild net buying
+    elif net_dollars < -1_000_000:
+        signal = -0.7   # Heavy net selling
+    elif net_dollars < -100_000:
+        signal = -0.3   # Mild net selling
     else:
-        activity_ratio = recent_filings
-    
-     
-    # Convert to -1 to +1 scale
-    # High activity could mean selling (negative) or buying (positive)
-    # Without parsing the forms, we default to negative (most insider activity is selling)
-    if activity_ratio > 2:
-        signal = -0.7  # Heavy activity = likely insider selling
-    elif activity_ratio > 1:
-        signal = -0.4  # Moderate activity = some insider selling
-    else:
-        signal = 0 # No significant activity
+        signal = 0.0    # No significant open-market activity
 
-    return signal, f"{recent_filings} filings (30d)"
+    note = f"Net: ${net_dollars:+,.0f} ({buy_count}B/{sell_count}S)"
+    return signal, note
     
 def calculate_media_signals(ticker, news_df):
      """
@@ -97,12 +94,12 @@ def calculate_media_signals(ticker, news_df):
     This comes directly from our weighted sentiment analysis.
     """
      if news_df.empty:
-        return 0 #No data = neutral signal
+        return 0.0, "No Data" #No data = neutral signal
      
      # Find this ticker in news data
      ticker_news = news_df[news_df['ticker']==ticker]
      if len(ticker_news) == 0:
-        return 0 #No news for this ticker = neutral signal
+        return 0.0, "No News" #No news for this ticker = neutral signal
      
      # Get average sentiment (already weighted by source credibility)
      avg_sentiment = ticker_news['avg_sentiment'].iloc[0]
@@ -119,15 +116,15 @@ def calculate_options_signal(ticker, price_df):
     Low put/call = confidence = bullish signal
     """
     if price_df.empty:
-        return 0 #No data = neutral signal
+        return 0.0,"No Data" #No data = neutral signal
     
     ticker_price = price_df[price_df['ticker']==ticker]
     if len(ticker_price) == 0:
-        return 0 #No price data for this ticker = neutral signal
+        return 0.0,"NO Price Data" #No price data for this ticker = neutral signal
     pc_ratio = ticker_price['put_call_ratio'].iloc[0]
 
     if pd.isna(pc_ratio):
-        return 0 #No valid ratio = neutral signal
+        return 0.0,"No valid P/C ratio" #No valid ratio = neutral signal
     
     # Normal P/C ratio is around 0.7-1.0
     # Above 1.3 = bearish (lots of puts being bought)
@@ -348,8 +345,8 @@ def display_dissonance_report(df):
 # ============================================
 # RUN EVERYTHING
 # ============================================
-df = calculate_all_dissonance()
-display_dissonance_report(df)
-
-print("\nMIRROR calculation complete.")
+if __name__ == "__main__":
+    df = calculate_all_dissonance()
+    display_dissonance_report(df)
+    print("\nMIRROR calculation complete.")
 

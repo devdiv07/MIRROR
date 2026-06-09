@@ -2,7 +2,12 @@ import requests
 import pandas as pd
 import time
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
+
+# Only collect filings from the last 90 days.
+# EDGAR returns the full history (sometimes 1000s of filings) with no
+# built-in limit — this cutoff keeps the dataset small and relevant.
+FILING_LOOKBACK_DAYS = 90
 
 HEADER = {
     'User-Agent': os.getenv(
@@ -51,10 +56,12 @@ def get_company_filings(ticker, cik):
         dates = filings['filingDate']
         documents = filings['primaryDocument']
         accession = filings['accessionNumber']
-        # Filter: only keep Form 4 (insider transactions)
+        # Filter: only keep Form 4 filings within the lookback window.
+        # Without this, EDGAR returns the full history (1000s of filings).
+        cutoff = (datetime.now() - timedelta(days=FILING_LOOKBACK_DAYS)).strftime('%Y-%m-%d')
         results = []
         for i, form in enumerate(forms):
-            if form == '4':
+            if form == '4' and dates[i] >= cutoff:
                 results.append({
                     'ticker': ticker,
                     'filing_date': dates[i],
@@ -138,7 +145,8 @@ def analyze_insider_activity(df):
 # ============================================
 # RUN EVERYTHING
 # ============================================
-df = collect_all_insider_filings()
-analyze_insider_activity(df)
+if __name__ == "__main__":
+    df = collect_all_insider_filings()
+    analyze_insider_activity(df)
 
-print("\nDone. Open data/insider_filings.csv to see raw data.")
+    print("\nDone. Open data/insider_filings.csv to see raw data.")

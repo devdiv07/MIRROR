@@ -42,14 +42,24 @@ def get_price_signal(ticker):# here ticker is used for the stock symbol, like 'A
         recent_price_change = hist['Close'].pct_change(5).iloc[-1] #iloc means we are looking at the last value of the percentage change over 5 days
         recent_volume_change = hist['Volume'].pct_change(5).iloc[-1] #here pct means percentage change in volume over 5 days and this line means we are looking at the last value of that percentage change
          
-        # If price and volume move opposite directions = divergence
-        if recent_price_change > 0 and recent_volume_change < -0.2:
-            pv_divergence = -1 
-            # pv means price volume divergence, here we are checking if the recent price change is positive (price went up) and the recent volume change is negative (volume went down significantly, more than 20%). If this condition is true, it indicates a bearish divergence, suggesting that the rally may be weak and potentially suspect.
-        elif recent_price_change < 0 and recent_volume_change > 0.2: 
-            pv_divergence = -1 #BearisH(real selling)
+        # Compute 20-day volatility first so the PV threshold can adapt to it.
+        # Higher-volatility stocks need larger volume moves to be meaningful.
+        returns = hist['Close'].pct_change()
+        volatility_20d = returns.rolling(20).std().iloc[-1] * 100  # in percent
+
+        # Adaptive threshold: require 10x the daily vol in volume change.
+        # At 2% daily vol → threshold = 0.20 (same as old fixed value).
+        # At 1% daily vol → threshold = 0.10 (tighter, avoids false signals).
+        # At 3% daily vol → threshold = 0.30 (looser, correct for turbulent stocks).
+        vol_threshold = max(0.10, (volatility_20d / 100) * 10)
+
+        # If price and volume move in opposite directions = divergence signal
+        if recent_price_change > 0 and recent_volume_change < -vol_threshold:
+            pv_divergence = -1   # Weak rally: price up but volume drying up
+        elif recent_price_change < 0 and recent_volume_change > vol_threshold:
+            pv_divergence = -1   # Real selling: price down on surging volume
         else:
-            pv_divergence = 0 #No divergence
+            pv_divergence = 0    # No divergence
 
         # ============================================
         # SIGNAL 3: Put/Call Ratio
@@ -64,18 +74,14 @@ def get_price_signal(ticker):# here ticker is used for the stock symbol, like 'A
                 put_volume = option.puts['volume'].sum() #this line calculates the total trading volume of put options by summing the 'volume' column from the puts DataFrame in the option chain.
                 call_volume = option.calls['volume'].sum() #this line calculates the total trading volume of call options by summing the 'volume' column from the calls DataFrame in the option chain.
                 if call_volume > 0:
-                    put_volume = option.puts['volume'].sum() #this line calculates the total trading volume of put options by summing the 'volume' column from the puts DataFrame in the option chain.
-                    call_volume = option.calls['volume'].sum() #this line calculates the total trading volume of call options by summing the 'volume' column from the calls DataFrame in the option chain.
-
-                    if call_volume > 0:
-                        put_call_ratio = put_volume / call_volume #this line calculates the put/call ratio by dividing the total put volume by the total call volume. The put/call ratio is a commonly used indicator in options trading that helps to gauge market sentiment. A higher put/call ratio may indicate bearish sentiment, while a lower ratio may indicate bullish sentiment.
-                    else:
-                        put_call_ratio = None # Avoid division by zero
+                    put_call_ratio = put_volume / call_volume
                 else:
-                    put_call_ratio = None # Avoid division by zero
+                    put_call_ratio = None  # Avoid division by zero
+            else:
+                put_call_ratio = None  # No options expiration dates available
         
         except:
-            put_call_ratio = None # If options data is not available, set ratio to None
+            put_call_ratio = None  # Options data unavailable for this ticker
         
         # ============================================
         # SIGNAL 4: Recent Price Momentum
@@ -90,8 +96,6 @@ def get_price_signal(ticker):# here ticker is used for the stock symbol, like 'A
         # SIGNAL 5: Volatility State
         # High volatility = unstable = fragile
         # ============================================
-        returns = hist['Close'].pct_change()
-        volatility_20d = returns.rolling(20).std().iloc[-1] * 100 # THIS LINE CODE CALCULATES THE 20-DAY ROLLING STANDARD DEVIATION OF THE PERCENTAGE CHANGES IN THE CLOSING PRICE, WHICH IS A MEASURE OF VOLATILITY. IT THEN MULTIPLIES THIS VALUE BY 100 TO EXPRESS IT AS A PERCENTAGE.
         return{
             'ticker': ticker,
             'current_price': round(hist['Close'].iloc[-1], 2),# round in simple words is used to limit the number of decimal places for the current price to 2, making it easier to read and interpret.
@@ -137,7 +141,7 @@ def collect_all_price_signals():
     return df
 
 def display_price_summary(df):
-    """"
+    """
     Display the collected price signals in a readable format.
     """
     if df.empty:
@@ -165,6 +169,7 @@ def display_price_summary(df):
 # ============================================
 # RUN EVERYTHING
 # ============================================
-df = collect_all_price_signals()
-display_price_summary(df)
-print("\n✓ Done. Ready for dissonance calculation.")
+if __name__ == "__main__":
+    df = collect_all_price_signals()
+    display_price_summary(df)
+    print("\n✓ Done. Ready for dissonance calculation.")

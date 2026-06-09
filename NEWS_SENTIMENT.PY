@@ -51,7 +51,7 @@ FINANCIAL_KEYWORDS = [
 # LAYER 4: Blacklist Terms - Reject if found
 # These indicate non-financial garbage content
 # ============================================
-BLACKLIST_TERMS = [
+BLACKLIST_TERMS = [ #this is a list of terms that are commonly found in non-financial articles, such as product reviews, recipes, entertainment news, and social media content. If any of these terms are found in the headline or description of a news article, it is likely that the article is not relevant to financial news and should be rejected from the sentiment analysis. This helps to filter out noise and ensure that the sentiment scores are based on legitimate financial news rather than unrelated content.
     'recipe', 'cooking', 'music review', 'album review', 
     'tv show', 'movie review', 'fashion', 'jeans', 'playlist',
     'apple pie', 'apple cider', 'apple watch band', 'apple music',
