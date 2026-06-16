@@ -1,0 +1,145 @@
+# MIRROR curated small/mid-cap universe
+# These are where insider OPEN-MARKET BUYING actually carries signal
+# (unlike mega-caps, whose insiders are paid in stock and only ever sell).
+# Source pool: S&P SmallCap 600 + S&P MidCap 400 across sectors.
+# One ticker per line. '#' starts a comment. Unknown tickers are dropped
+# automatically by universe.resolve_universe().
+
+# --- Financials / Banks (regional banks see frequent insider buys) ---
+CATY
+CVBF
+FFBC
+FULT
+GBCI
+HOPE
+INDB
+PPBI
+SFNC
+TCBI
+TRMK
+UCBI
+UMBF
+WAFD
+HOMB
+ABCB
+BANR
+CADE
+FIBK
+ONB
+
+# --- Industrials ---
+AEIS
+AIT
+B
+BCC
+EME
+GGG
+HUBB
+KEX
+MLI
+MTZ
+RBC
+SAIA
+SXI
+TKR
+WTS
+ALG
+GTLS
+HELE
+KAI
+LXFR
+
+# --- Consumer / Retail ---
+CROX
+CALM
+SMPL
+BJRI
+CAKE
+CHEF
+DIN
+PLAY
+SHAK
+WING
+BOOT
+DBI
+GES
+SCVL
+ZUMZ
+HIBB
+MUSA
+SFM
+GO
+FIVE
+
+# --- Healthcare / Biotech ---
+AMED
+CORT
+HSTM
+LNTH
+MGLN
+NEO
+OMCL
+PRGO
+SUPN
+VCEL
+HALO
+MEDP
+PRVA
+ENSG
+ADUS
+
+# --- Technology ---
+FIVN
+PLAB
+CALX
+DIOD
+EXTR
+FORM
+MXL
+NSIT
+POWI
+SANM
+SMCI
+SYNA
+VIAV
+ACLS
+COHU
+ICHR
+KLIC
+PLXS
+RMBS
+ROG
+
+# --- Energy ---
+MGY
+CIVI
+CPE
+CRC
+DINO
+GPOR
+MTDR
+NOG
+PR
+SM
+VTLE
+WKC
+
+# --- Materials ---
+ASH
+CC
+CMP
+KWR
+OLN
+SCL
+TROX
+WLK
+HWKN
+
+# --- Real Estate / Misc ---
+CUZ
+EPRT
+LXP
+NSA
+ROIC
+SKT
+UE
