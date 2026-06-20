@@ -402,10 +402,11 @@ def show_source_quality_breakdown(df):
         print("⚠ Fair data quality - many unknown sources")
 
 #=============RUN EVERYTHING================
-articles_df, summary_df = collect_all_news()
-display_sentiment_summary(summary_df)
-show_source_quality_breakdown(articles_df)  # NEW: Show source quality
-show_most_extreme_headlines(articles_df)
+if __name__ == "__main__":
+    articles_df, summary_df = collect_all_news()
+    display_sentiment_summary(summary_df)
+    show_source_quality_breakdown(articles_df)  # NEW: Show source quality
+    show_most_extreme_headlines(articles_df)
 
-print("\n✓ Done. Check data/ folder for CSV files.")
-print("✓ Sentiment scores are now weighted by source credibility.")
+    print("\n✓ Done. Check data/ folder for CSV files.")
+    print("✓ Sentiment scores are now weighted by source credibility.")

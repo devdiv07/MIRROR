@@ -60,3 +60,4 @@ else:
     col_10b = 'is_10b51_plan'
 print(df[col_10b].value_counts().to_string())
 print(f'10b5-1 trades as % of total: {100*df[col_10b].sum()/len(df):.1f}%')
+# all this script in this folder is use for only temporary audit and debugging purposes, not for production use

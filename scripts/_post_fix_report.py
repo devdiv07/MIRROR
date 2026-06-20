@@ -253,3 +253,4 @@ df[out_cols].sort_values('conviction_signal', key=abs, ascending=False).to_csv(
     'results/insider_signals_phase2.csv', index=False
 )
 print("\n[DONE] Updated results saved to results/insider_signals_phase2.csv")
+#this script is also use for only temporary audit and debugging purposes, not for production use

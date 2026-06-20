@@ -26,5 +26,10 @@ Thumbs.db
 data/*.csv
 results/*.csv
 
+# Captured run logs / pipeline stdout
+final_pipeline_output.txt
+pipeline_run.txt
+*.log
+
 # Notebook checkpoints
 .ipynb_checkpoints/

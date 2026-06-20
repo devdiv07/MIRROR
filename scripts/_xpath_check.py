@@ -41,3 +41,5 @@ for tx in root.findall('.//nonDerivativeTransaction'):
 # Footnotes
 footnotes = [f.text.strip() for f in root.findall('.//footnote') if f.text]
 print('footnotes:', footnotes)
+# use of this script for temporary audit and debugging purposes, not for production use
+#we can delete this script after we confirm the xpath for aff10b5One and footnotes in Form 4 XML

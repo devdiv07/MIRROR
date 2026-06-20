@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<!--
+  MIRROR — Future Roadmap & Production Plan
+  PDF Export: Open in Chrome/Edge → Ctrl+P → Save as PDF → Enable "Background graphics"
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MIRROR — Future Roadmap &amp; Production Plan</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy:      #0d1b2a;
+    --navy-mid:  #1a2f4a;
+    --navy-light:#2e4a6a;
+    --accent:    #1565c0;
+    --accent2:   #0288d1;
+    --teal:      #00695c;
+    --gray-100:  #f4f6f9;
+    --gray-200:  #e8ecf2;
+    --gray-400:  #9aabbc;
+    --gray-700:  #4a5568;
+    --white:     #ffffff;
+    --text:      #1a202c;
+    --mono:      'Courier New', Courier, monospace;
+    --sans:      -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  }
+  body { font-family: var(--sans); font-size: 13px; line-height: 1.65; color: var(--text); background: #d0d7e3; }
+  .page { width: 210mm; min-height: 297mm; background: var(--white); margin: 16px auto; padding: 20mm 18mm 16mm 18mm; box-shadow: 0 4px 24px rgba(0,0,0,0.18); position: relative; }
+  .page-break { page-break-before: always; }
+  /* Cover */
+  .cover { display: flex; flex-direction: column; justify-content: center; min-height: 257mm; }
+  .cover-bar { width: 100%; height: 8px; background: linear-gradient(90deg, var(--navy) 0%, var(--accent) 60%, var(--accent2) 100%); border-radius: 4px; margin-bottom: 36px; }
+  .cover-eyebrow { font-size: 10.5px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent2); margin-bottom: 12px; }
+  .cover-title { font-size: 32px; font-weight: 800; color: var(--navy); line-height: 1.15; margin-bottom: 14px; }
+  .cover-title span { color: var(--accent); }
+  .cover-subtitle { font-size: 14px; color: var(--navy-light); font-weight: 500; max-width: 430px; margin-bottom: 36px; line-height: 1.5; }
+  .cover-meta { background: var(--gray-100); border-left: 4px solid var(--accent); border-radius: 4px; padding: 16px 22px; min-width: 360px; margin-bottom: 32px; }
+  .cover-meta table { width: 100%; }
+  .cover-meta td { padding: 3px 0; font-size: 12.5px; }
+  .cover-meta td:first-child { font-weight: 700; color: var(--navy); width: 130px; }
+  .cover-meta td:last-child { color: var(--gray-700); }
+  .cover-badge-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; }
+  .cover-badge { background: var(--navy); color: white; border-radius: 20px; padding: 4px 13px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; }
+  .cover-divider { border: none; border-top: 1px solid var(--gray-200); margin: 24px 0 16px; }
+  .cover-note { font-size: 10.5px; color: var(--gray-400); font-style: italic; }
+  .cover-warn { background: #fff3cd; border-left: 4px solid #f0ad4e; border-radius: 4px; padding: 10px 16px; margin-top: 20px; font-size: 11.5px; color: #856404; }
+  /* Headers */
+  .section-num { display: inline-block; background: var(--accent); color: white; font-size: 10.5px; font-weight: 700; padding: 2px 9px; border-radius: 12px; margin-bottom: 7px; letter-spacing: 0.08em; }
+  h1.st { font-size: 21px; font-weight: 800; color: var(--navy); margin-bottom: 6px; border-bottom: 2.5px solid var(--accent); padding-bottom: 7px; }
+  h2.sub { font-size: 14px; font-weight: 700; color: var(--navy-mid); margin: 20px 0 9px; padding-left: 11px; border-left: 3px solid var(--accent2); }
+  h3.sub2 { font-size: 12.5px; font-weight: 700; color: var(--navy-light); margin: 14px 0 7px; }
+  /* Text */
+  p { margin-bottom: 9px; color: var(--gray-700); }
+  ul, ol { margin: 7px 0 11px 18px; color: var(--gray-700); }
+  li { margin-bottom: 3px; }
+  /* Tables */
+  .tw { overflow-x: auto; margin: 12px 0; }
+  table.t { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+  table.t thead tr { background: var(--navy); color: white; }
+  table.t thead th { padding: 8px 10px; text-align: left; font-weight: 700; letter-spacing: 0.03em; }
+  table.t tbody tr:nth-child(even) { background: var(--gray-100); }
+  table.t tbody td { padding: 7px 10px; border-bottom: 1px solid var(--gray-200); vertical-align: top; }
+  /* Badges */
+  .b { display: inline-block; border-radius: 10px; padding: 2px 8px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; white-space: nowrap; }
+  .b-crit { background:#b71c1c; color:#fff; }
+  .b-high { background:#e53935; color:#fff; }
+  .b-med  { background:#f57c00; color:#fff; }
+  .b-low  { background:#388e3c; color:#fff; }
+  .b-info { background:#1565c0; color:#fff; }
+  .b-now  { background:#4a148c; color:#fff; }
+  .b-fut  { background:#00695c; color:#fff; }
+  .b-p0   { background:#b71c1c; color:#fff; }
+  .b-p1   { background:#e53935; color:#fff; }
+  .b-p2   { background:#f57c00; color:#fff; }
+  .b-p3   { background:#388e3c; color:#fff; }
+  .b-stara { color:#1565c0; font-weight:700; }
+  /* Callouts */
+  .call { border-radius: 5px; padding: 12px 16px; margin: 14px 0; border-left: 5px solid; }
+  .call-info   { background:#e3f2fd; border-color:var(--accent2); }
+  .call-warn   { background:#fff8e1; border-color:#f9a825; }
+  .call-danger { background:#ffebee; border-color:#c62828; }
+  .call-ok     { background:#e8f5e9; border-color:#2e7d32; }
+  .call-title  { font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+  /* Code */
+  code { font-family: var(--mono); font-size: 11px; background: var(--gray-100); padding: 1px 4px; border-radius: 3px; color: #c62828; }
+  pre { font-family: var(--mono); font-size: 10.5px; background: var(--navy); color: #e2e8f0; padding: 12px 14px; border-radius: 6px; overflow-x: auto; margin: 10px 0; line-height: 1.5; }
+  /* Diagram cards */
+  .dc { border: 1.5px solid var(--gray-200); border-radius: 7px; padding: 14px 12px 10px; margin: 16px 0; background: var(--gray-100); }
+  .dc-lbl { font-size: 10.5px; font-weight: 700; color: var(--accent); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
+  .mermaid { text-align: center; }
+  /* BA */
+  .ba-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 12px 0; }
+  .ba-b { background:#fff3e0; border: 1.5px solid #ffb74d; border-radius: 5px; padding: 12px; }
+  .ba-a { background:#e8f5e9; border: 1.5px solid #66bb6a; border-radius: 5px; padding: 12px; }
+  .ba-lbl { font-size: 9.5px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 6px; }
+  .ba-b .ba-lbl { color:#e65100; }
+  .ba-a .ba-lbl { color:#1b5e20; }
+  /* Section card */
+  .sc { background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 7px; padding: 14px 18px; margin: 12px 0; }
+  /* TOC */
+  .toc-e { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 0; border-bottom: 1px dotted var(--gray-200); font-size: 12.5px; }
+  .toc-e a { color: var(--navy-mid); text-decoration: none; font-weight: 500; }
+  .toc-pg { color: var(--gray-400); font-size: 11px; }
+  .toc-sub { padding-left: 14px; font-size: 11.5px; }
+  /* Stage cards */
+  .stage-a { border-left: 5px solid #1565c0; background: #e3f2fd; padding: 12px 16px; border-radius: 0 6px 6px 0; margin: 10px 0; }
+  .stage-b { border-left: 5px solid #00695c; background: #e0f2f1; padding: 12px 16px; border-radius: 0 6px 6px 0; margin: 10px 0; }
+  .stage-c { border-left: 5px solid #4a148c; background: #f3e5f5; padding: 12px 16px; border-radius: 0 6px 6px 0; margin: 10px 0; }
+  /* interview */
+  .quote-block { background: var(--navy); color: #e2e8f0; border-radius: 7px; padding: 20px 24px; margin: 16px 0; font-size: 13px; line-height: 1.75; }
+  .quote-block strong { color: #90caf9; }
+  /* Header/Footer */
+  .pg-hdr { position: absolute; top: 9mm; left: 18mm; right: 18mm; display: flex; justify-content: space-between; font-size: 9.5px; color: var(--gray-400); border-bottom: 1px solid var(--gray-200); padding-bottom: 3px; }
+  .pg-ftr { position: absolute; bottom: 7mm; left: 18mm; right: 18mm; display: flex; justify-content: space-between; font-size: 9.5px; color: var(--gray-400); border-top: 1px solid var(--gray-200); padding-top: 3px; }
+  /* Checklist */
+  .chk-item { padding: 5px 0; display: flex; align-items: flex-start; gap: 8px; border-bottom: 1px solid var(--gray-200); font-size: 12px; }
+  .chk-box { width: 14px; height: 14px; border: 2px solid var(--gray-400); border-radius: 3px; flex-shrink: 0; margin-top: 2px; }
+  @media print {
+    body { background: white; }
+    .page { width:100%; margin:0; padding:14mm 15mm 12mm 15mm; box-shadow:none; page-break-after:always; }
+    .page-break { page-break-before:always; }
+    .no-print { display:none!important; }
+    a { color:inherit; text-decoration:none; }
+    pre { white-space:pre-wrap; word-break:break-word; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     COVER
+══════════════════════════════════════ -->
+<div class="page">
+  <div class="cover">
+    <div class="cover-bar"></div>
+    <div class="cover-eyebrow">Production Readiness &amp; Future Roadmap Report &nbsp;·&nbsp; Institutional Planning Document</div>
+    <div class="cover-title"><span>MIRROR</span><br>Future Roadmap &amp;<br>Production Plan</div>
+    <div class="cover-subtitle">
+      From Research Prototype to Production-Grade Quantitative Signal Platform —<br>
+      Architecture, Security, Testing, Observability, and Phased Execution Roadmap
+    </div>
+    <div class="cover-badge-row">
+      <span class="cover-badge">Phase 2 Complete</span>
+      <span class="cover-badge">31/31 Tests</span>
+      <span class="cover-badge">Not Production-Ready Yet</span>
+      <span class="cover-badge">Solo Developer</span>
+      <span class="cover-badge">8,013 Transactions</span>
+    </div>
+    <div class="cover-meta">
+      <table>
+        <tr><td>Prepared by</td><td>devdiv07</td></tr>
+        <tr><td>Date</td><td>June 19, 2026</td></tr>
+        <tr><td>Version</td><td>Roadmap v1.0 — Post Phase 2</td></tr>
+        <tr><td>Current State</td><td>Research-grade pipeline; not production-ready</td></tr>
+        <tr><td>Next Milestone</td><td>Phase 3 — Stability &amp; Hardening</td></tr>
+        <tr><td>Horizon</td><td>12-month phased roadmap</td></tr>
+      </table>
+    </div>
+    <div class="cover-warn">
+      <strong>Honest Assessment:</strong> MIRROR is a well-structured research pipeline with a strong Phase 2 scoring engine and 31 passing tests. It is <strong>not yet production-ready</strong>. This document maps the exact gap and the path to close it — without over-engineering.
+    </div>
+    <hr class="cover-divider">
+    <div class="cover-note">To export as PDF: open in Chrome/Edge → Ctrl+P → Save as PDF → enable "Background graphics" → margins: None.</div>
+  </div>
+  <div class="pg-ftr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>Cover</span></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     TABLE OF CONTENTS
+══════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="pg-hdr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>June 2026</span></div>
+  <div class="section-num">INDEX</div>
+  <h1 class="st">Table of Contents</h1>
+  <div class="toc-e"><a href="#s1">1 &nbsp; Executive Summary</a><span class="toc-pg">3</span></div>
+  <div class="toc-e"><a href="#s2">2 &nbsp; Current State Assessment</a><span class="toc-pg">4</span></div>
+  <div class="toc-sub toc-e"><a href="#s2a">&nbsp; 2.1 Maturity Scorecard</a><span class="toc-pg">4</span></div>
+  <div class="toc-sub toc-e"><a href="#s2b">&nbsp; 2.2 Real Bugs and Conflicts Found</a><span class="toc-pg">5</span></div>
+  <div class="toc-e"><a href="#s3">3 &nbsp; Future Vision (3 / 6 / 12 Months)</a><span class="toc-pg">5</span></div>
+  <div class="toc-e"><a href="#s4">4 &nbsp; Production Architecture Roadmap — Stages A / B / C</a><span class="toc-pg">6</span></div>
+  <div class="toc-e"><a href="#s5">5 &nbsp; Security and Threat Model</a><span class="toc-pg">8</span></div>
+  <div class="toc-e"><a href="#s6">6 &nbsp; AI-Assisted Coding Safety Workflow</a><span class="toc-pg">10</span></div>
+  <div class="toc-e"><a href="#s7">7 &nbsp; Testing Strategy</a><span class="toc-pg">11</span></div>
+  <div class="toc-e"><a href="#s8">8 &nbsp; Observability and Debugging Plan</a><span class="toc-pg">12</span></div>
+  <div class="toc-e"><a href="#s9">9 &nbsp; Data and Database Strategy</a><span class="toc-pg">13</span></div>
+  <div class="toc-e"><a href="#s10">10 &nbsp; API and Dashboard Future Plan</a><span class="toc-pg">14</span></div>
+  <div class="toc-e"><a href="#s11">11 &nbsp; Scalability and Performance Plan</a><span class="toc-pg">14</span></div>
+  <div class="toc-e"><a href="#s12">12 &nbsp; Contributor and Team Readiness</a><span class="toc-pg">15</span></div>
+  <div class="toc-e"><a href="#s13">13 &nbsp; Phased Implementation Roadmap</a><span class="toc-pg">16</span></div>
+  <div class="toc-e"><a href="#s14">14 &nbsp; Risk Register</a><span class="toc-pg">18</span></div>
+  <div class="toc-e"><a href="#s15">15 &nbsp; Final Recommendation</a><span class="toc-pg">18</span></div>
+  <div class="toc-e"><a href="#s16">16 &nbsp; Action Checklist</a><span class="toc-pg">19</span></div>
+  <div class="toc-e"><a href="#s17">17 &nbsp; Appendix</a><span class="toc-pg">19</span></div>
+  <div class="pg-ftr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>Table of Contents</span></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     1. EXECUTIVE SUMMARY
+══════════════════════════════════════ -->
+<div class="page page-break" id="s1">
+  <div class="pg-hdr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>June 2026</span></div>
+  <div class="section-num">SECTION 1</div>
+  <h1 class="st">Executive Summary</h1>
+
+  <p>MIRROR has completed a meaningful Phase 2 delivery: a modular, YAML-driven 7-scorer conviction engine processing 8,013 insider transactions across 111 tickers, with 31 passing tests and a clean layered <code>src/</code> architecture. This is a solid research-grade foundation.</p>
+
+  <p><strong>However, MIRROR is not production-ready.</strong> This report states that directly, identifies every specific gap, and provides a practical 12-month roadmap to close them — without over-engineering a solo project.</p>
+
+  <h2 class="sub">The Four Biggest Gaps Right Now</h2>
+  <div class="tw">
+    <table class="t">
+      <thead><tr><th>#</th><th>Gap</th><th>Severity</th><th>Where</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><strong>Wrong config path in production pipeline</strong> — <code>run_scoring_pipeline.py:50</code> loads from <code>'insider_signal_phase1/config/scoring.yaml'</code> which does not exist. The real config is at <code>'config/scoring.yaml'</code>. This is a latent crash.</td><td><span class="b b-crit">Critical Bug</span></td><td><code>src/pipeline/run_scoring_pipeline.py</code></td></tr>
+        <tr><td>2</td><td><strong>No observability.</strong> The pipeline uses only <code>print()</code>. No structured logs, no run IDs, no timing, no stage-level error reporting. A failed external API call is invisible.</td><td><span class="b b-high">High</span></td><td>All pipeline files</td></tr>
+        <tr><td>3</td><td><strong>No CI/CD.</strong> There is no <code>.github/workflows/</code> folder. Tests exist but are never automatically run on commit. Code can be merged that breaks tests.</td><td><span class="b b-high">High</span></td><td>Repository</td></tr>
+        <tr><td>4</td><td><strong>Implementation plan phase naming conflict.</strong> The plan labels an unbuilt "Universe Manager" as "Phase 2" — but Phase 2 (conviction engine) is already shipped. This will cause confusion for any future contributor.</td><td><span class="b b-med">Medium</span></td><td><code>implementation_plan.md</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="sub">Where MIRROR Sits on the Maturity Scale</h2>
+  <div class="sc">
+    <p><strong>Research-Grade (current):</strong> Deterministic pipeline, meaningful output, passing tests, clean architecture — suitable for personal research and portfolio demonstration.</p>
+    <p><strong>Production-Grade (target):</strong> Structured logging, CI/CD, dependency scanning, reproducible runs with run IDs, contributor documentation, hardened error handling, and validated signal quality.</p>
+    <p style="margin:0;"><strong>Platform-Grade (future, 12+ months):</strong> API layer, dashboard, auth, database, Docker, deployment — only when the signal is validated and there are real users.</p>
+  </div>
+
+  <div class="call call-warn">
+    <div class="call-title">Honest Assessment</div>
+    MIRROR has all the right structural instincts — registry pattern, YAML config, enrichment layers, meaningful tests. The gaps are in the operational layer: observability, reliability, security scanning, and contributor tooling. These are fixable in 6–8 weeks of focused work before any platform features should be considered.
+  </div>
+  <div class="pg-ftr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>Section 1 — Executive Summary</span></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     2. CURRENT STATE ASSESSMENT
+══════════════════════════════════════ -->
+<div class="page page-break" id="s2">
+  <div class="pg-hdr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>June 2026</span></div>
+  <div class="section-num">SECTION 2</div>
+  <h1 class="st" id="s2a">Current State Assessment — Maturity Scorecard</h1>
+
+  <div class="tw">
+    <table class="t">
+      <thead><tr><th>Area</th><th>Level</th><th>Evidence (verified)</th><th>Gap</th><th>Priority</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Architecture</strong></td><td>★★★☆☆</td><td>Layered src/ with registry pattern; YAML-driven weights; enrichment separation</td><td>Hardcoded relative paths; no entry-point guard on pipeline</td><td><span class="b b-high">High</span></td></tr>
+        <tr><td><strong>Data pipeline reliability</strong></td><td>★★☆☆☆</td><td>Graceful None/NaN handling in scorers; enrichment fallback strategies</td><td>Wrong config path (latent crash); no checksums; no retry on API failure</td><td><span class="b b-crit">Critical</span></td></tr>
+        <tr><td><strong>Security</strong></td><td>★★☆☆☆</td><td>.env gitignored; .env.example present; data/ and results/ gitignored</td><td>No dep scanning; no secret scanning CI step; no input validation on CSV rows</td><td><span class="b b-high">High</span></td></tr>
+        <tr><td><strong>Testing</strong></td><td>★★★☆☆</td><td>31 tests; edge cases for None/NaN/clamp/symmetry; entity filer gate tested</td><td>No integration test; no e2e pipeline test; no API failure simulation; exploratory comment in test file</td><td><span class="b b-high">High</span></td></tr>
+        <tr><td><strong>Observability</strong></td><td>★☆☆☆☆</td><td>print() statements in pipeline show stage progress</td><td>No structured logs; no run IDs; no timing per stage; no debug report; failed tickers invisible</td><td><span class="b b-crit">Critical</span></td></tr>
+        <tr><td><strong>Error handling</strong></td><td>★★☆☆☆</td><td>Aggregator degrades gracefully; load_config() falls back to defaults</td><td>Pipeline crashes on missing CSV; yfinance failures are unhandled; no retry logic</td><td><span class="b b-high">High</span></td></tr>
+        <tr><td><strong>Configuration management</strong></td><td>★★★☆☆</td><td>YAML-driven scorer weights; .env for secrets; config/scoring.yaml clean</td><td>Pipeline hardcodes wrong config path; no config schema validation</td><td><span class="b b-med">Medium</span></td></tr>
+        <tr><td><strong>Documentation</strong></td><td>★★★☆☆</td><td>architecture.md; change_justification.md; inline code comments</td><td>No CONTRIBUTING.md; no setup guide; no runbook; no ADR folder</td><td><span class="b b-med">Medium</span></td></tr>
+        <tr><td><strong>Git workflow</strong></td><td>★☆☆☆☆</td><td>Meaningful commit messages; recent Phase 2 commit documented</td><td>No CI/CD; no .github/ templates; no branch protection; no PR template</td><td><span class="b b-high">High</span></td></tr>
+        <tr><td><strong>Contributor onboarding</strong></td><td>★★☆☆☆</td><td>README exists with quickstart and scorer table</td><td>No CONTRIBUTING.md; no local dev guide; no coding standards; no issue templates</td><td><span class="b b-med">Medium</span></td></tr>
+        <tr><td><strong>Deployment readiness</strong></td><td>★☆☆☆☆</td><td>Runs locally with pip install -r requirements.txt</td><td>No Docker; no deployment scripts; no environment management beyond .env</td><td><span class="b b-low">Low (now)</span></td></tr>
+        <tr><td><strong>Performance</strong></td><td>★★★☆☆</td><td>8,013 rows scored acceptably; pandas aggregation efficient</td><td>yfinance called per-ticker without caching; no batch optimization</td><td><span class="b b-low">Low (now)</span></td></tr>
+        <tr><td><strong>Scalability</strong></td><td>★★☆☆☆</td><td>CSV is simple and sufficient for current data volume</td><td>No database; single-process; 111 tickers but plan targets 146+</td><td><span class="b b-low">Low (now)</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="sub" id="s2b">2.2 Real Bugs and Conflicts Found in Code Review</h2>
+  <div class="call call-danger">
+    <div class="call-title">Bug 1 — Wrong Config Path (Latent Crash)</div>
+    <code>src/pipeline/run_scoring_pipeline.py:50</code><br>
+    <code>config = load_config('insider_signal_phase1/config/scoring.yaml')</code><br>
+    The folder <code>insider_signal_phase1/</code> does not exist at project root. The real config is at <code>config/scoring.yaml</code>. This will silently fall back to DEFAULT_CONFIG and fire a UserWarning — the operator has no signal that this occurred.
+  </div>
+  <div class="call call-warn">
+    <div class="call-title">Conflict — Implementation Plan Phase Numbering</div>
+    The <code>implementation_plan.md</code> labels "Universe Manager + Corporate Actions" as "Phase 2." But the shipped conviction engine is already called "Phase 2" in all existing docs. Any contributor reading both documents will be confused about what has been built. <strong>Recommended fix:</strong> Rename the implementation plan's numbered phases to "Roadmap Stage R3, R4..." or "Future Phase A, B..." to avoid collision with the shipped Phase 1 and Phase 2.
+  </div>
+  <div class="call call-warn">
+    <div class="call-title">Test File Quality Note</div>
+    <code>tests/test_conviction.py</code> contains the comment: <em>"we can delete this test file after we confirm..."</em> — this marks it as exploratory/temporary. It should be treated as confirmed production tests and the comment removed before any teammate sees it.
+  </div>
+  <div class="call call-info">
+    <div class="call-title">technical_score Warning on Every Run</div>
+    <code>src/scoring/aggregator.py</code> — <code>REQUIRED_SCORERS</code> includes <code>'technical_score'</code> which has no registered scorer. Every pipeline run emits a <code>UserWarning</code>. This is intentional per the YAML comment ("disabled until backtested") but is not documented for the operator.
+  </div>
+  <div class="pg-ftr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>Section 2 — Current State</span></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     3. FUTURE VISION
+══════════════════════════════════════ -->
+<div class="page page-break" id="s3">
+  <div class="pg-hdr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>June 2026</span></div>
+  <div class="section-num">SECTION 3</div>
+  <h1 class="st">Future Vision</h1>
+
+  <h2 class="sub">3 Months — Research-Grade Stable System</h2>
+  <div class="stage-a">
+    <p><strong>Goal:</strong> MIRROR runs reproducibly, safely, and is ready for a second contributor.</p>
+    <ul>
+      <li>Config path bug fixed; all hardcoded paths resolved</li>
+      <li>Structured logging with run IDs replacing print statements</li>
+      <li>GitHub Actions CI running pytest on every push</li>
+      <li>CONTRIBUTING.md, setup guide, and PR template in place</li>
+      <li>dependency scanning (pip-audit or Safety) in CI</li>
+      <li>Walk-forward backtester validating signal quality</li>
+      <li>Experiment tracker recording every pipeline run</li>
+    </ul>
+  </div>
+
+  <h2 class="sub">6 Months — Signal Validated + Internal Tool</h2>
+  <div class="stage-b">
+    <p><strong>Goal:</strong> The conviction signal has empirical evidence of predictive value, and the pipeline runs in Docker.</p>
+    <ul>
+      <li>Bayesian parameter optimizer replacing manually-chosen YAML weights</li>
+      <li>Walk-forward backtester with IC, hit rate, Sharpe, and deflated Sharpe</li>
+      <li>Statistical uncertainty reporting (bootstrap CIs, p-values)</li>
+      <li>Universe management (survivorship-bias-free)</li>
+      <li>Docker container for reproducible local runs</li>
+      <li>SQLite for multi-run history (not replacing CSV, adding alongside)</li>
+      <li>Simple CLI dashboard (<code>python mirror.py --report</code>)</li>
+    </ul>
+  </div>
+
+  <h2 class="sub">12 Months — Platform Option (Only If Signal Is Valid)</h2>
+  <div class="stage-c">
+    <p><strong>Goal:</strong> If signal has proven IC &gt; 0.05 (out-of-sample), evolve to a web-accessible internal tool.</p>
+    <ul>
+      <li>REST API (FastAPI) with JWT auth and rate limiting</li>
+      <li>PostgreSQL replacing SQLite at meaningful data volume</li>
+      <li>Scheduled pipeline runs via APScheduler or cron</li>
+      <li>Simple web dashboard for signal exploration</li>
+      <li>Docker Compose + cloud deployment (Railway/Render/VPS)</li>
+      <li>Role-based access for analyst contributors</li>
+    </ul>
+    <p style="margin-top:8px; margin-bottom:0;"><strong>Important gate:</strong> Do not build the platform if the signal does not validate. A dashboard for a broken signal is wasted effort. Signal validation is the gating milestone.</p>
+  </div>
+
+  <h2 class="sub">What "Production-Grade" Means for This Project</h2>
+  <div class="tw">
+    <table class="t">
+      <thead><tr><th>Quality Dimension</th><th>What It Means for MIRROR Specifically</th></tr></thead>
+      <tbody>
+        <tr><td>Reliability</td><td>Pipeline completes without crashing on API failures; retries on transient errors; every run produces an audit log</td></tr>
+        <tr><td>Reproducibility</td><td>Same input + same config + same git commit → same output; run metadata stored with results</td></tr>
+        <tr><td>Security</td><td>No secrets in git; deps scanned weekly; API keys rotate on schedule; input validated before processing</td></tr>
+        <tr><td>Observability</td><td>Every run has a run_id; structured JSON logs; per-stage timing; failed ticker list; data quality report</td></tr>
+        <tr><td>Testability</td><td>Unit + integration + e2e tests; external APIs mockable; no test deletes itself after running</td></tr>
+        <tr><td>Contributor-ready</td><td>Any developer can clone, install, run tests, understand architecture, and submit a PR in under 1 hour</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="pg-ftr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>Section 3 — Future Vision</span></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     4. ARCHITECTURE ROADMAP
+══════════════════════════════════════ -->
+<div class="page page-break" id="s4">
+  <div class="pg-hdr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>June 2026</span></div>
+  <div class="section-num">SECTION 4</div>
+  <h1 class="st">Production Architecture Roadmap</h1>
+
+  <div class="dc">
+    <div class="dc-lbl">Architecture Evolution — Local Research → Internal Tool → Cloud Platform</div>
+    <div class="mermaid">
+flowchart LR
+    subgraph SA["Stage A — Research-Grade (Now → 3 months)"]
+        direction TB
+        A1["src/ layered pipeline\n(current — fix bugs)"]
+        A2["config/scoring.yaml\n(fix path bug)"]
+        A3["tests/ + CI\n(GitHub Actions)"]
+        A4["structured logging\n+ run IDs"]
+        A5["experiment_tracker.py\n(reproducible runs)"]
+        A6["backtester.py\n(signal validation)"]
+    end
+    subgraph SB["Stage B — Internal Tool (3 → 6 months)"]
+        direction TB
+        B1["SQLite\n(multi-run history)"]
+        B2["Docker\n(reproducible env)"]
+        B3["optimizer.py\n(YAML weights → data-driven)"]
+        B4["universe_manager.py\n(bias-free backtest)"]
+        B5["CLI dashboard\npython mirror.py --report"]
+    end
+    subgraph SC["Stage C — Platform (6 → 12 months, IF signal valid)"]
+        direction TB
+        C1["FastAPI REST layer"]
+        C2["PostgreSQL"]
+        C3["APScheduler\ncron jobs"]
+        C4["Web dashboard"]
+        C5["Docker Compose\n+ cloud deploy"]
+    end
+    SA -->|"signal validated\nIC > 0.05"| SB
+    SB -->|"users > 1\ndata volume justifies"| SC
+    </div>
+  </div>
+
+  <div class="tw">
+    <table class="t">
+      <thead><tr><th>Stage</th><th>Goal</th><th>What to Build</th><th>What NOT to Build Yet</th><th>Exit Criteria</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>A</strong><br><span class="b b-info">Now–3 mo</span></td>
+          <td>Stable, safe, reproducible research pipeline</td>
+          <td>Fix config path bug; structured logging + run IDs; GitHub Actions CI; CONTRIBUTING.md; pip-audit; experiment tracker; walk-forward backtester</td>
+          <td>API layer; database; Docker; dashboard; optimizer (too early without validated signal)</td>
+          <td>Zero crashes on full pipeline run; CI green on every push; any new developer can run tests in &lt;10 min</td>
+        </tr>
+        <tr>
+          <td><strong>B</strong><br><span class="b b-fut">3–6 mo</span></td>
+          <td>Signal validated; tool is containerized</td>
+          <td>Bayesian optimizer; universe manager; statistical reporter (bootstrap CIs); SQLite run history; Docker; CLI report command</td>
+          <td>Public API; web dashboard; external user auth; load balancer (zero external users yet)</td>
+          <td>Out-of-sample IC &gt; 0.05; deflated Sharpe &gt; 0.3; Docker run works clean; optimizer output reproducible</td>
+        </tr>
+        <tr>
+          <td><strong>C</strong><br><span class="b b-p2">6–12 mo</span></td>
+          <td>Internal platform for 2–5 users</td>
+          <td>FastAPI REST; PostgreSQL; JWT auth; scheduled jobs; simple Jinja2 dashboard; Docker Compose; cloud deploy</td>
+          <td>Load balancer (not needed for &lt;10 users); Kubernetes (over-engineering at this scale); GraphQL (REST is sufficient)</td>
+          <td>API serves signals; &gt;1 user can log in; scheduled daily run; backups working; monitoring alerting on failure</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="sub">What Should NOT Be Over-Engineered</h2>
+  <div class="call call-info">
+    <div class="call-title">Solo Developer — Avoid These Until Justified</div>
+    <ul style="margin-top:4px;">
+      <li><strong>Kubernetes / k8s:</strong> Not needed until you have multiple concurrent users or need auto-scaling. A single VPS handles 10–50 users trivially.</li>
+      <li><strong>GraphQL:</strong> REST with good pagination is sufficient. GraphQL adds schema complexity with no benefit at this scale.</li>
+      <li><strong>Redis / Celery:</strong> APScheduler handles scheduled jobs in-process. Add Redis only when you need a distributed queue.</li>
+      <li><strong>Microservices:</strong> The monolith is correct for this stage. Split only when one component genuinely needs independent scaling.</li>
+      <li><strong>WAF / DDoS protection:</strong> Only relevant when the service is publicly accessible. Use Cloudflare free tier if/when that happens.</li>
+    </ul>
+  </div>
+  <div class="pg-ftr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>Section 4 — Architecture Roadmap</span></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     5. SECURITY PLAN
+══════════════════════════════════════ -->
+<div class="page page-break" id="s5">
+  <div class="pg-hdr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>June 2026</span></div>
+  <div class="section-num">SECTION 5</div>
+  <h1 class="st">Security and Threat Model</h1>
+
+  <h2 class="sub">Threat Model Table</h2>
+  <div class="tw">
+    <table class="t">
+      <thead><tr><th>Threat</th><th>Attack Surface</th><th>Impact</th><th>Mitigation</th><th>Priority</th></tr></thead>
+      <tbody>
+        <tr><td>API key committed to git</td><td>.env, test fixtures, inline code</td><td>Key exposure, account compromise, billing fraud</td><td>.env in .gitignore (done); add <code>gitleaks</code> or GitHub secret scanning to CI</td><td><span class="b b-crit">Critical</span></td></tr>
+        <tr><td>Dependency supply chain attack</td><td>requirements.txt; pip installs</td><td>Malicious code executed in pipeline</td><td>Pin all dep versions; run <code>pip-audit</code> weekly in CI; use a lockfile</td><td><span class="b b-high">High</span></td></tr>
+        <tr><td>Malicious SEC EDGAR XML response</td><td>sec_filings_fetcher.py; insider_parser_v2.py</td><td>XML injection; parser crash; data corruption</td><td>Use <code>defusedxml</code> instead of <code>xml.etree</code>; validate field types before use; set request timeouts</td><td><span class="b b-high">High</span></td></tr>
+        <tr><td>CSV injection in output files</td><td>results/*.csv opened in Excel</td><td>Formula injection if cells start with =, +, -, @</td><td>Sanitize string fields before writing CSV; prefix dangerous chars with a space</td><td><span class="b b-med">Medium</span></td></tr>
+        <tr><td>yfinance / NewsAPI data poisoning</td><td>External APIs trusted without validation</td><td>Corrupt market data produces false signals; split detection fails</td><td>Validate return ranges (no single-day move &gt;50%); cross-check market cap sanity</td><td><span class="b b-med">Medium</span></td></tr>
+        <tr><td>Secrets in logs</td><td>Structured logging once added</td><td>API keys appear in log files committed or shared</td><td>Mask API keys in log formatter; never log full request headers; never log raw .env values</td><td><span class="b b-high">High</span></td></tr>
+        <tr><td>AI-generated insecure code</td><td>Any Claude Code / AI output</td><td>Hallucinated APIs; weak error handling; silent exception swallowing; fake test results</td><td>See Section 6 — AI Safety Workflow</td><td><span class="b b-high">High</span></td></tr>
+        <tr><td>Prompt injection in AI-assisted docs</td><td>External data (EDGAR footnotes, news headlines) passed to AI</td><td>Malicious text in financial data could manipulate AI suggestions</td><td>Never paste raw external API responses into AI prompts; treat all external text as untrusted</td><td><span class="b b-med">Medium</span></td></tr>
+        <tr><td>Unauthorized API access (Stage C)</td><td>REST API when added</td><td>Unauthenticated signal access; data exfiltration</td><td>JWT auth; rate limiting (slowapi); RBAC; audit logs — only needed at Stage C</td><td><span class="b b-low">Low (now)</span></td></tr>
+        <tr><td>CORS misconfiguration (Stage C)</td><td>API CORS headers</td><td>Cross-origin requests from malicious sites</td><td>Allowlist origins explicitly; never use <code>allow_origins=["*"]</code> with auth</td><td><span class="b b-low">Low (now)</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="sub">Immediate Security Actions (Stage A)</h2>
+  <div class="tw">
+    <table class="t">
+      <thead><tr><th>Action</th><th>Tool</th><th>When</th></tr></thead>
+      <tbody>
+        <tr><td>Add GitHub secret scanning to CI</td><td><code>gitleaks</code> or GitHub native secret scanning</td><td>Before next push</td></tr>
+        <tr><td>Dependency vulnerability scan</td><td><code>pip-audit</code> in GitHub Actions</td><td>Stage A CI setup</td></tr>
+        <tr><td>Replace xml.etree with defusedxml</td><td><code>pip install defusedxml</code></td><td>Stage A hardening</td></tr>
+        <tr><td>Pin all dependency versions in requirements.txt</td><td>Run <code>pip freeze &gt; requirements.txt</code> in .venv</td><td>Stage A</td></tr>
+        <tr><td>Add request timeouts to all API calls</td><td>requests timeout parameter</td><td>Stage A</td></tr>
+        <tr><td>Sanitize CSV output fields</td><td>Custom sanitize() function before df.to_csv()</td><td>Stage A</td></tr>
+        <tr><td>API key rotation schedule</td><td>Calendar reminder every 90 days</td><td>Now</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="sub">AI Code Risk Specifics (Verified from This Codebase)</h2>
+  <div class="call call-warn">
+    <div class="call-title">Real AI Risks Found in MIRROR</div>
+    <ul style="margin-top:4px;">
+      <li><strong>Wrong config path:</strong> <code>run_scoring_pipeline.py:50</code> loads the wrong YAML path — this is consistent with AI-generated code that assumes a folder structure without verifying it exists.</li>
+      <li><strong>Exploratory test comment:</strong> "we can delete this test file" — AI sometimes treats tests as scaffolding rather than permanent assets.</li>
+      <li><strong>Missing request timeouts:</strong> AI-generated API calls rarely include timeouts unless explicitly requested.</li>
+    </ul>
+  </div>
+  <div class="pg-ftr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>Section 5 — Security</span></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     6. AI SAFETY WORKFLOW
+══════════════════════════════════════ -->
+<div class="page page-break" id="s6">
+  <div class="pg-hdr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>June 2026</span></div>
+  <div class="section-num">SECTION 6</div>
+  <h1 class="st">AI-Assisted Coding Safety Workflow</h1>
+
+  <div class="dc">
+    <div class="dc-lbl">AI-Safe Development Workflow</div>
+    <div class="mermaid">
+flowchart TD
+    A["Human: write task description\n+ scope + files affected"] --> B["AI proposes diff\n(small, focused)"]
+    B --> C{"Human reviews:\nDoes diff match task?\nAny silent try/except?\nAny fake results?\nFiles match expectations?"}
+    C -->|"No — reject"| A
+    C -->|"Yes"| D["Run linter + type check\npyflakes / mypy"]
+    D --> E{"Lint passes?"}
+    E -->|"No"| B
+    E -->|"Yes"| F["Run pytest\npytest tests/ -v"]
+    F --> G{"All tests pass?"}
+    G -->|"No"| B
+    G -->|"Yes"| H["Human: read EVERY changed file\nnot just the diff"]
+    H --> I{"Satisfied?"}
+    I -->|"No"| A
+    I -->|"Yes"| J["git add specific files\n(never git add -A)"]
+    J --> K["Commit with clear message\n+ Co-Authored-By"]
+    </div>
+  </div>
+
+  <div class="tw">
+    <table class="t">
+      <thead><tr><th>AI Risk</th><th>Rule</th><th>Verification</th></tr></thead>
+      <tbody>
+        <tr><td>Hallucinated file paths</td><td>AI must state every file it reads before editing</td><td>Check file exists with ls before trusting AI's path claim</td></tr>
+        <tr><td>Silent exception swallowing</td><td>No bare <code>except:</code> or <code>except Exception: pass</code></td><td>grep for bare except in diff: <code>grep -n "except:" diff</code></td></tr>
+        <tr><td>Fake test results</td><td>AI must never claim tests pass — you run them</td><td>Always run <code>pytest -v</code> yourself after AI generates tests</td></tr>
+        <tr><td>Large refactor without design note</td><td>No refactor touching &gt;3 files without a written design note first</td><td>Count changed files in <code>git diff --stat</code></td></tr>
+        <tr><td>Undocumented dependency additions</td><td>Any new import must be justified in the commit message</td><td>Check <code>git diff requirements.txt</code> before commit</td></tr>
+        <tr><td>Secret exposure</td><td>Never paste .env content, API responses, or token values into AI prompts</td><td>Review prompt history before sending</td></tr>
+        <tr><td>Doc drift</td><td>AI updates docs only when behavior changes — not speculatively</td><td>Verify doc changes match code changes in diff</td></tr>
+        <tr><td>Wrong config/path assumptions</td><td>All paths must be relative to project root and verified to exist</td><td>Run <code>python -c "import os; print(os.path.exists('path'))"</code></td></tr>
+        <tr><td>Fabricated benchmark claims</td><td>No "X% faster" or "Y% improvement" claims without a measured baseline</td><td>Require reproducible benchmark command in commit message</td></tr>
+        <tr><td>Type-unsafe code</td><td>All new functions must have type hints</td><td>Run mypy on changed files</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="sub">Claude Code Safe Prompt Template</h2>
+  <div class="sc">
+    <p>Use this template before every coding task given to Claude Code or any AI assistant:</p>
+    <pre>## Task
+[One sentence: what should change and why]
+
+## Scope
+Files to read: [exact paths]
+Files to modify: [exact paths]
+Files NOT to touch: [exact paths]
+
+## Constraints
+- Do not add new dependencies without justification
+- Do not refactor files outside scope
+- No bare except: or silent error swallowing
+- All new functions must have type hints
+- Do not claim tests pass — I will run them
+- Do not paste or reference .env contents
+- Config paths must use os.path.join() from project root
+
+## Definition of Done
+- [ ] Diff is small and focused
+- [ ] Tests written for new behavior
+- [ ] pytest passes (I will verify)
+- [ ] No new warnings in output
+- [ ] Docs updated only if behavior changed</pre>
+  </div>
+  <div class="pg-ftr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>Section 6 — AI Safety Workflow</span></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     7. TESTING STRATEGY
+══════════════════════════════════════ -->
+<div class="page page-break" id="s7">
+  <div class="pg-hdr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>June 2026</span></div>
+  <div class="section-num">SECTION 7</div>
+  <h1 class="st">Testing Strategy</h1>
+
+  <div class="dc">
+    <div class="dc-lbl">Test Pyramid — MIRROR</div>
+    <div class="mermaid">
+flowchart TD
+    E5["🔺 Performance Tests\nEnd-to-end timing benchmarks\npipeline &lt; 5 min for 111 tickers\n[Future — Stage B]"]
+    E4["Security Tests\ndep scan · secret scan · input fuzzing\n[Stage A CI]"]
+    E3["Pipeline Integration Tests\nFull run on fixture data\nverify output shape + range\n[Stage A — HIGH PRIORITY]"]
+    E2["Integration Tests\nEnrichment chain · aggregator wiring\nexternal API mock responses\n[Stage A]"]
+    E1["Unit Tests — 31 existing\nScorer logic · edge cases · clamp\nregistry wiring · entity gate\n[DONE — needs cleanup]"]
+    E1 --> E2 --> E3 --> E4 --> E5
+    style E1 fill:#e8f5e9,stroke:#2e7d32
+    style E2 fill:#e3f2fd,stroke:#1565c0
+    style E3 fill:#fff3e0,stroke:#f57c00
+    style E4 fill:#ffebee,stroke:#c62828
+    style E5 fill:#f3e5f5,stroke:#6a1b9a
+    </div>
+  </div>
+
+  <div class="tw">
+    <table class="t">
+      <thead><tr><th>Layer</th><th>Purpose</th><th>Tools</th><th>Example Test</th><th>Required Before Merge</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Unit</strong></td><td>Individual scorer correctness, edge cases</td><td>pytest</td><td>score_conviction(NaN) == 0.0</td><td>Yes — always</td></tr>
+        <tr><td><strong>Integration</strong></td><td>Enrichment chain; aggregator wiring; config loading</td><td>pytest + fixtures</td><td>enrich_ownership → enrich_market_context → aggregate produces valid float</td><td>Yes — for pipeline-touching PRs</td></tr>
+        <tr><td><strong>Pipeline E2E</strong></td><td>Full pipeline run on fixture CSV; verify output shape, range, no NaN</td><td>pytest + small fixture CSV (100 rows)</td><td>run_scoring_pipeline() on fixture → output has 100 rows, all signals in [-1,+1]</td><td>Yes — for any pipeline change</td></tr>
+        <tr><td><strong>Data validation</strong></td><td>Schema validation on pipeline output; no out-of-range values</td><td>pytest + pandas assertions</td><td>assert df['conviction_signal'].between(-1,1).all()</td><td>Yes</td></tr>
+        <tr><td><strong>Regression / snapshot</strong></td><td>Detect unintended signal changes; golden file comparison</td><td>pytest + CSV snapshot</td><td>New pipeline output matches committed golden CSV within tolerance</td><td>Yes — for scoring changes</td></tr>
+        <tr><td><strong>Missing data</strong></td><td>Pipeline handles missing CSV, missing columns, all-None enrichment</td><td>pytest + tempfile</td><td>Pipeline with missing market_cap column → graceful warning, not crash</td><td>Yes</td></tr>
+        <tr><td><strong>API failure simulation</strong></td><td>External API down → pipeline degrades gracefully</td><td>pytest + unittest.mock</td><td>Mock yfinance to raise ConnectionError → enrichment returns NaN columns, not crash</td><td>Yes — for enrichment changes</td></tr>
+        <tr><td><strong>Property-based</strong></td><td>Scoring formula invariants hold for any valid input</td><td>pytest + Hypothesis</td><td>For any pct in [0,1], score_conviction output is in [-1,1] and magnitude matches pct</td><td>Future — Stage B</td></tr>
+        <tr><td><strong>Security</strong></td><td>No secrets in code; deps have no known CVEs</td><td>gitleaks + pip-audit in CI</td><td>pip-audit --strict exits non-zero on any vulnerability</td><td>Yes — in CI</td></tr>
+        <tr><td><strong>Backtest validation</strong></td><td>Walk-forward IC &gt; 0 (better than random)</td><td>backtester.py + scipy</td><td>Spearman IC p-value &lt; 0.05 on held-out test window</td><td>Future — Stage B</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="sub">Minimum Quality Gates Before Any Merge</h2>
+  <div class="sc">
+    <pre>pytest tests/ -v                    # all must pass
+pyflakes src/ tests/               # zero errors
+mypy src/ --ignore-missing-imports # zero type errors (future)
+pip-audit --strict                 # zero known CVEs
+gitleaks detect --no-git           # zero secret leaks
+# No uncommitted generated files
+# No invalid Mermaid in docs
+# No broken internal doc links</pre>
+  </div>
+  <div class="pg-ftr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>Section 7 — Testing Strategy</span></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     8. OBSERVABILITY
+══════════════════════════════════════ -->
+<div class="page page-break" id="s8">
+  <div class="pg-hdr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>June 2026</span></div>
+  <div class="section-num">SECTION 8</div>
+  <h1 class="st">Observability and Debugging Plan</h1>
+
+  <p>The current pipeline uses only <code>print()</code>. A failed API call, a stale yfinance response, or a missing input column leaves no trace. The operator has no way to audit what happened in a past run. This section fixes that.</p>
+
+  <h2 class="sub">Proposed Folder Structure</h2>
+  <pre>MIRROR/
+├── logs/
+│   └── mirror_YYYY-MM-DD.jsonl      # structured JSON logs per run
+├── runs/
+│   └── {run_id}/
+│       ├── run_metadata.json         # full run record
+│       ├── data_quality_report.txt   # per-stage row counts, warnings
+│       └── failed_tickers.txt        # tickers that failed enrichment
+├── reports/
+│   └── signal_explanation_{run_id}.csv  # explain() output per transaction
+├── artifacts/
+│   └── config_snapshot_{run_id}.yaml    # frozen config used for this run
+└── docs/runbooks/
+    ├── how_to_run_pipeline.md
+    ├── how_to_add_a_scorer.md
+    └── how_to_debug_a_failed_run.md</pre>
+
+  <h2 class="sub">Run Metadata Schema</h2>
+  <pre>{
+  "run_id":        "20260619_143022_a3f8",
+  "started_at":    "2026-06-19T14:30:22Z",
+  "ended_at":      "2026-06-19T14:38:45Z",
+  "duration_sec":  503,
+  "git_commit":    "c549c2f",
+  "config_hash":   "sha256:ab3f...",
+  "config_file":   "config/scoring.yaml",
+  "input_files":   ["data/insider_transactions.csv"],
+  "output_files":  ["results/insider_signals_phase2.csv"],
+  "stage_status": {
+    "load_transactions": {"rows_in": 8013, "duration_sec": 0.3, "status": "ok"},
+    "enrich_ownership":  {"rows_in": 8013, "rows_out": 8013, "null_pct": 0.005, "status": "ok"},
+    "enrich_market":     {"rows_in": 8013, "failed_tickers": ["XYZ"], "status": "warn"},
+    "enrich_10b51":      {"rows_in": 8013, "flagged": 1533, "status": "ok"},
+    "scoring":           {"rows_scored": 8013, "range_violations": 0, "status": "ok"}
+  },
+  "warnings":      ["technical_score enabled in YAML but not registered"],
+  "errors":        [],
+  "row_counts":    {"input": 8013, "output": 8013, "dropped": 0},
+  "signal_stats":  {"mean": -0.14, "std": 0.18, "min": -0.488, "max": 0.644}
+}</pre>
+
+  <div class="dc">
+    <div class="dc-lbl">Pipeline Traceability — Input to Auditable Output</div>
+    <div class="mermaid">
+flowchart LR
+    A["input CSV\n+ config"] --> B["run_id generated\nmetadata opened"]
+    B --> C["Stage 1: Load\nrow_count logged"]
+    C --> D["Stage 2: Enrich Ownership\nrows_in, rows_out, null_pct"]
+    D --> E["Stage 3: Enrich Market\nfailed_tickers logged"]
+    E --> F["Stage 4: Enrich 10b5-1\nflagged count logged"]
+    F --> G["Stage 5: Score\nrange_violations checked"]
+    G --> H["output CSV\n+ run_metadata.json\n+ data_quality_report.txt"]
+    H --> I["run_id links\ninput → config → output\nfully auditable"]
+    </div>
+  </div>
+
+  <h2 class="sub">Structured Logging Standard</h2>
+  <div class="sc">
+    <p>Replace all <code>print()</code> with Python's <code>logging</code> module writing JSON lines to <code>logs/</code>:</p>
+    <pre>import logging, json, time
+logger = logging.getLogger("mirror.pipeline")
+# Each log line: {"ts":"...","level":"INFO","run_id":"...","stage":"enrich_ownership","msg":"..."}</pre>
+    <p style="margin-top:6px; margin-bottom:0;">Rule: <strong>never log API keys, auth tokens, or raw HTTP response headers.</strong> Mask with <code>[REDACTED]</code> in the formatter.</p>
+  </div>
+  <div class="pg-ftr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>Section 8 — Observability</span></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     9. DATA STRATEGY
+══════════════════════════════════════ -->
+<div class="page page-break" id="s9">
+  <div class="pg-hdr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>June 2026</span></div>
+  <div class="section-num">SECTION 9</div>
+  <h1 class="st">Data and Database Strategy</h1>
+
+  <div class="tw">
+    <table class="t">
+      <thead><tr><th>Storage</th><th>Best For</th><th>Pros</th><th>Cons</th><th>Recommended Stage</th></tr></thead>
+      <tbody>
+        <tr><td><strong>CSV (current)</strong></td><td>Single-run research; small data; git-diff-able output</td><td>Zero infra; pandas native; easy to inspect</td><td>No indexing; no multi-run history; no concurrent access; no foreign keys</td><td><span class="b b-info">Stage A (keep)</span></td></tr>
+        <tr><td><strong>SQLite</strong></td><td>Multi-run history; local query; experiment tracking</td><td>Zero server; file-based; SQL queries; pandas read_sql</td><td>Single writer; not suitable for concurrent multi-user access</td><td><span class="b b-fut">Stage B</span></td></tr>
+        <tr><td><strong>DuckDB</strong></td><td>Analytical queries on large CSV/Parquet files</td><td>Columnar; fast aggregations; reads Parquet natively; no server</td><td>Less ecosystem than SQLite; overkill for &lt;100k rows</td><td><span class="b b-p2">Stage B optional</span></td></tr>
+        <tr><td><strong>PostgreSQL</strong></td><td>Multi-user platform; concurrent access; production API backend</td><td>Full ACID; concurrent writes; pg_audit; rich index types</td><td>Requires server; more ops overhead</td><td><span class="b b-p2">Stage C</span></td></tr>
+        <tr><td><strong>Parquet + Object Storage</strong></td><td>Large historical datasets; backtest archives</td><td>Compressed; columnar; cloud-native</td><td>Not queryable without DuckDB/Spark; no SQL natively</td><td><span class="b b-p2">Stage C optional</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p><strong>Recommendation:</strong> Keep CSV for pipeline output (Stage A). Add SQLite for experiment tracking and run history (Stage B). Migrate to PostgreSQL only when there are multiple concurrent users or the API layer requires it (Stage C).</p>
+
+  <h2 class="sub">Future Database Schema (SQLite → PostgreSQL)</h2>
+  <div class="tw">
+    <table class="t">
+      <thead><tr><th>Table</th><th>Key Columns</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><code>tickers</code></td><td>ticker, cik, sector, added_date, delisted_date</td><td>Universe management; survivorship bias control</td></tr>
+        <tr><td><code>filings</code></td><td>filing_id, ticker, filing_date, form_type, edgar_url</td><td>Raw filing index from EDGAR</td></tr>
+        <tr><td><code>transactions</code></td><td>txn_id, filing_id, insider_name, title, date, type, shares, price, dollar_value, is_company</td><td>Parsed Form 4 transactions</td></tr>
+        <tr><td><code>enriched_transactions</code></td><td>txn_id (FK), pct_holdings_transacted, market_cap, avg_30d_adv, is_10b51_plan, run_id (FK)</td><td>Enriched transaction data per run</td></tr>
+        <tr><td><code>scoring_runs</code></td><td>run_id, started_at, ended_at, git_commit, config_hash, status</td><td>Run metadata and audit trail</td></tr>
+        <tr><td><code>scorer_outputs</code></td><td>run_id (FK), txn_id (FK), scorer_name, raw_score, weight, contribution</td><td>Per-scorer explain() output for debugging</td></tr>
+        <tr><td><code>backtest_results</code></td><td>run_id, window_start, window_end, ic, hit_rate, sharpe, drawdown</td><td>Walk-forward backtest metrics per window</td></tr>
+        <tr><td><code>users</code></td><td>user_id, email, role, hashed_password, created_at</td><td>Auth — Stage C only; RBAC: admin / analyst / viewer</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="pg-ftr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>Section 9 — Data Strategy</span></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     10 + 11. API / SCALABILITY
+══════════════════════════════════════ -->
+<div class="page page-break" id="s10">
+  <div class="pg-hdr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>June 2026</span></div>
+  <div class="section-num">SECTION 10</div>
+  <h1 class="st">API and Dashboard Future Plan</h1>
+
+  <p>An API layer is <strong>not needed until Stage C</strong> — when there are multiple users or the signal needs to be consumed programmatically. The following plan is speculative but architecturally sound for when that moment arrives.</p>
+
+  <div class="dc">
+    <div class="dc-lbl">Future API + Dashboard Architecture</div>
+    <div class="mermaid">
+flowchart TD
+    U["User / Analyst Browser"] --> FE["Simple Dashboard\nJinja2 + HTMX\nor React (Stage C)"]
+    FE --> API["FastAPI REST API\n/api/v1/..."]
+    API --> AUTH["JWT Auth Middleware\n+ Rate Limiter (slowapi)"]
+    AUTH --> SVC["Signal Service Layer"]
+    SVC --> DB["PostgreSQL\n+ Connection Pool"]
+    SVC --> SCHED["APScheduler\nDaily pipeline runs"]
+    SCHED --> PIPE["MIRROR Pipeline\nsrc/pipeline/run_scoring_pipeline.py"]
+    PIPE --> DB
+    API --> CACHE["Redis (optional)\nresponse cache for /signals"]
+    </div>
+  </div>
+
+  <div class="tw">
+    <table class="t">
+      <thead><tr><th>Endpoint</th><th>Method</th><th>Purpose</th><th>Auth Required</th></tr></thead>
+      <tbody>
+        <tr><td><code>/api/v1/health</code></td><td>GET</td><td>Liveness check; last successful run timestamp</td><td>No</td></tr>
+        <tr><td><code>/api/v1/runs</code></td><td>GET</td><td>Paginated list of pipeline runs (run_id, status, timestamp)</td><td>Yes — analyst</td></tr>
+        <tr><td><code>/api/v1/runs/{run_id}</code></td><td>GET</td><td>Full run metadata, stage status, row counts</td><td>Yes — analyst</td></tr>
+        <tr><td><code>/api/v1/signals</code></td><td>GET</td><td>Latest signals with filter, sort, pagination (?ticker=GO&amp;min_signal=0.3)</td><td>Yes — analyst</td></tr>
+        <tr><td><code>/api/v1/signals/{ticker}</code></td><td>GET</td><td>All transactions for one ticker, sorted by signal</td><td>Yes — analyst</td></tr>
+        <tr><td><code>/api/v1/signals/{txn_id}/explain</code></td><td>GET</td><td>Per-scorer explain() breakdown for one transaction</td><td>Yes — analyst</td></tr>
+        <tr><td><code>/api/v1/scorers</code></td><td>GET</td><td>Active scorers, weights, enabled status from current config</td><td>Yes — analyst</td></tr>
+        <tr><td><code>/api/v1/pipeline/run</code></td><td>POST</td><td>Trigger a pipeline run; returns run_id immediately (async)</td><td>Yes — admin</td></tr>
+        <tr><td><code>/api/v1/admin/users</code></td><td>GET/POST</td><td>User management</td><td>Yes — admin</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section-num" style="margin-top:22px;" id="s11">SECTION 11</div>
+  <h1 class="st">Scalability and Performance Plan</h1>
+
+  <div class="tw">
+    <table class="t">
+      <thead><tr><th>Concern</th><th>Needed Now?</th><th>Future Trigger</th><th>Solution</th></tr></thead>
+      <tbody>
+        <tr><td>yfinance per-ticker latency</td><td><span class="b b-now">Yes</span></td><td>Current bottleneck (111 tickers × 1-2s each)</td><td>Cache market data per ticker per date; batch API calls where possible</td></tr>
+        <tr><td>Database indexing</td><td>No (CSV now)</td><td>When SQLite/PG added</td><td>Index on (ticker, date), (run_id), (conviction_signal)</td></tr>
+        <tr><td>Pagination</td><td>No</td><td>When API added and &gt;1000 results</td><td>offset/limit in all list endpoints; default page_size=50</td></tr>
+        <tr><td>Background job queue</td><td>No</td><td>When pipeline triggered by API users</td><td>APScheduler (in-process); upgrade to Celery+Redis if &gt;5 concurrent users</td></tr>
+        <tr><td>Request timeouts</td><td><span class="b b-now">Yes</span></td><td>Current — all API calls have no timeout</td><td>Add <code>timeout=30</code> to all requests.get() calls immediately</td></tr>
+        <tr><td>Retry with backoff</td><td><span class="b b-now">Yes</span></td><td>Current — API failures crash pipeline</td><td>Use tenacity or manual retry with exponential backoff (3 attempts, 2s/4s/8s)</td></tr>
+        <tr><td>Horizontal scaling</td><td>No</td><td>Only when &gt;50 concurrent users; single VPS can handle &lt;50</td><td>Docker + load balancer (nginx); not needed until Stage C</td></tr>
+        <tr><td>Caching layer (Redis)</td><td>No</td><td>When API response times &gt;500ms under load</td><td>Cache /signals responses for 15 min; invalidate on new pipeline run</td></tr>
+        <tr><td>Circuit breakers</td><td>No</td><td>When external API failures should not halt all tickers</td><td>Implement per-ticker try/except with failed_tickers log; continue to next ticker</td></tr>
+        <tr><td>Load balancing</td><td>No</td><td>Never needed until public high-traffic deployment</td><td>Single nginx reverse proxy is sufficient for Stage C</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="pg-ftr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>Sections 10–11</span></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     12. CONTRIBUTOR READINESS
+══════════════════════════════════════ -->
+<div class="page page-break" id="s12">
+  <div class="pg-hdr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>June 2026</span></div>
+  <div class="section-num">SECTION 12</div>
+  <h1 class="st">Contributor and Team Readiness</h1>
+
+  <div class="dc">
+    <div class="dc-lbl">Contributor Workflow</div>
+    <div class="mermaid">
+flowchart LR
+    A["Fork / Clone\nfollows setup guide"] --> B["Read CONTRIBUTING.md\n+ architecture.md"]
+    B --> C["Create feature branch\nfeat/scorer-technical"]
+    C --> D["Write code + tests\nfollows coding standards"]
+    D --> E["Run quality gates locally\npytest · pyflakes · pip-audit"]
+    E --> F["Open Pull Request\nfills PR template"]
+    F --> G["CI runs automatically\nGitHub Actions"]
+    G -->|"Fail"| D
+    G -->|"Pass"| H["Human review\nchecklist + diff review"]
+    H -->|"Changes requested"| D
+    H -->|"Approved"| I["Squash merge to main\ncommit message convention"]
+    </div>
+  </div>
+
+  <h2 class="sub">Proposed Documentation and File Structure</h2>
+  <pre>MIRROR/
+├── README.md                    # quickstart, scorer table, architecture overview
+├── CONTRIBUTING.md              # setup guide, coding standards, PR process
+├── CODEOWNERS                   # @devdiv07 owns src/ scoring/ enrichment/
+├── .github/
+│   ├── PULL_REQUEST_TEMPLATE.md
+│   ├── workflows/
+│   │   ├── ci.yml               # pytest + pyflakes + pip-audit on every push
+│   │   └── security.yml         # gitleaks weekly scan
+│   └── ISSUE_TEMPLATE/
+│       ├── bug_report.md
+│       └── feature_request.md
+└── docs/
+    ├── architecture.md          # current — good
+    ├── change_justification.md  # current — good
+    ├── roadmap.md               # THIS document (markdown version)
+    ├── security.md              # secrets policy, key rotation, threat model
+    ├── testing.md               # how to run tests, what to test
+    ├── observability.md         # how to read run metadata, logs, debug a run
+    ├── adr/
+    │   ├── 001-registry-pattern.md
+    │   ├── 002-yaml-driven-weights.md
+    │   └── 003-flat-csv-storage.md
+    └── runbooks/
+        ├── how_to_run_pipeline.md
+        ├── how_to_add_a_scorer.md
+        ├── how_to_debug_a_failed_run.md
+        └── how_to_rotate_api_keys.md</pre>
+
+  <h2 class="sub">Commit Convention and Branch Naming</h2>
+  <div class="tw">
+    <table class="t">
+      <thead><tr><th>Type</th><th>When to Use</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td><code>fix:</code></td><td>Bug fix</td><td><code>fix: correct config path in run_scoring_pipeline.py</code></td></tr>
+        <tr><td><code>feat:</code></td><td>New scorer, new enrichment, new CLI flag</td><td><code>feat: add universe_manager for bias-free backtest</code></td></tr>
+        <tr><td><code>test:</code></td><td>Adding or fixing tests</td><td><code>test: add pipeline e2e test with fixture CSV</code></td></tr>
+        <tr><td><code>docs:</code></td><td>Documentation only</td><td><code>docs: add runbook for debugging failed runs</code></td></tr>
+        <tr><td><code>chore:</code></td><td>CI, deps, config</td><td><code>chore: add GitHub Actions CI workflow</code></td></tr>
+        <tr><td><code>refactor:</code></td><td>No behavior change, code quality</td><td><code>refactor: extract config path constant to settings.py</code></td></tr>
+        <tr><td><code>security:</code></td><td>Security fixes</td><td><code>security: replace xml.etree with defusedxml</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Branch naming: <code>feat/scorer-technical</code>, <code>fix/config-path-bug</code>, <code>test/pipeline-e2e</code>, <code>docs/contributor-guide</code></p>
+  <div class="pg-ftr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>Section 12 — Contributor Readiness</span></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     13. PHASED ROADMAP
+══════════════════════════════════════ -->
+<div class="page page-break" id="s13">
+  <div class="pg-hdr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>June 2026</span></div>
+  <div class="section-num">SECTION 13</div>
+  <h1 class="st">Phased Implementation Roadmap</h1>
+
+  <div class="call call-info">
+    <div class="call-title">Phase Naming Note</div>
+    The <code>implementation_plan.md</code> uses "Phase 2–8" numbering for unbuilt features. To avoid confusion with the already-shipped Phase 1 (dissonance model) and Phase 2 (conviction engine), this roadmap uses "Phase 3, 4, 5..." for future work — continuing the existing numbering convention.
+  </div>
+
+  <h2 class="sub">Phase 3 — Stability and Hardening (Weeks 1–6)</h2>
+  <div class="stage-a">Goal: make the existing system reliable, secure, and ready for a second contributor.</div>
+  <div class="tw"><table class="t">
+    <thead><tr><th>Task</th><th>Why It Matters</th><th>Files Affected</th><th>Difficulty</th><th>Risk</th><th>Acceptance Criteria</th></tr></thead>
+    <tbody>
+      <tr><td>Fix config path bug</td><td>Current pipeline silently uses wrong config</td><td><code>src/pipeline/run_scoring_pipeline.py:50</code></td><td><span class="b b-low">Easy</span></td><td><span class="b b-crit">Critical</span></td><td><code>config/scoring.yaml</code> loaded; no UserWarning about path</td></tr>
+      <tr><td>Add structured logging</td><td>No observability; failures invisible</td><td>All pipeline files; new <code>src/utils/logger.py</code></td><td><span class="b b-med">Medium</span></td><td><span class="b b-high">High</span></td><td>JSON log written to <code>logs/</code>; run_id in every log line</td></tr>
+      <tr><td>Add run metadata writer</td><td>No audit trail for runs</td><td>New <code>src/utils/run_context.py</code></td><td><span class="b b-med">Medium</span></td><td><span class="b b-high">High</span></td><td><code>runs/{run_id}/run_metadata.json</code> created on every run</td></tr>
+      <tr><td>Add GitHub Actions CI</td><td>Tests never run automatically</td><td>New <code>.github/workflows/ci.yml</code></td><td><span class="b b-low">Easy</span></td><td><span class="b b-high">High</span></td><td>pytest runs on every push/PR; green badge in README</td></tr>
+      <tr><td>Add pip-audit to CI</td><td>Dependencies have unscanned CVEs</td><td><code>.github/workflows/ci.yml</code></td><td><span class="b b-low">Easy</span></td><td><span class="b b-high">High</span></td><td>pip-audit --strict in CI; fails build on any CVE</td></tr>
+      <tr><td>Replace xml.etree with defusedxml</td><td>XXE injection risk in XML parsing</td><td><code>src/parsers/insider_parser_v2.py</code></td><td><span class="b b-low">Easy</span></td><td><span class="b b-high">High</span></td><td>defusedxml.ElementTree used; tests still pass</td></tr>
+      <tr><td>Add request timeouts</td><td>Hanging API calls block pipeline forever</td><td><code>sec_filings_fetcher.py</code>; <code>enrich_market_context.py</code></td><td><span class="b b-low">Easy</span></td><td><span class="b b-high">High</span></td><td>All requests.get() calls have timeout=30</td></tr>
+      <tr><td>Remove exploratory test comment</td><td>Signals test is temporary; must be permanent</td><td><code>tests/test_conviction.py</code></td><td><span class="b b-low">Trivial</span></td><td><span class="b b-low">Low</span></td><td>Comment removed; test file treated as production</td></tr>
+      <tr><td>Write CONTRIBUTING.md</td><td>No contributor setup guide exists</td><td>New <code>CONTRIBUTING.md</code></td><td><span class="b b-low">Easy</span></td><td><span class="b b-med">Medium</span></td><td>New developer can run tests in &lt;10 min following guide</td></tr>
+      <tr><td>Write pipeline e2e test</td><td>No test covers full pipeline run</td><td>New <code>tests/test_pipeline_e2e.py</code></td><td><span class="b b-med">Medium</span></td><td><span class="b b-high">High</span></td><td>Pipeline runs on 100-row fixture CSV; output validates</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 class="sub">Phase 4 — Signal Validation and Backtesting (Weeks 7–14)</h2>
+  <div class="stage-b">Goal: prove empirically that the conviction signal has predictive value before any platform investment.</div>
+  <div class="tw"><table class="t">
+    <thead><tr><th>Task</th><th>Why It Matters</th><th>Difficulty</th><th>Risk</th><th>Acceptance Criteria</th></tr></thead>
+    <tbody>
+      <tr><td>Universe manager (bias-free)</td><td>Backtest lying without survivorship control</td><td><span class="b b-med">Medium</span></td><td><span class="b b-crit">Critical</span></td><td>No ticker appears in historical test before its listing date</td></tr>
+      <tr><td>Historical data builder</td><td>Training data for backtester</td><td><span class="b b-med">Medium</span></td><td><span class="b b-high">High</span></td><td>6-month rolling signal dataset with forward returns</td></tr>
+      <tr><td>Experiment tracker</td><td>Every run must be reproducible</td><td><span class="b b-med">Medium</span></td><td><span class="b b-high">High</span></td><td>config_hash + git_commit stored per run; compare_runs() works</td></tr>
+      <tr><td>Walk-forward backtester</td><td>Out-of-sample validation prevents overfitting</td><td><span class="b b-high">Hard</span></td><td><span class="b b-high">High</span></td><td>IC, hit rate, Sharpe reported per window; no future leakage</td></tr>
+      <tr><td>Statistical uncertainty reporter</td><td>Single-point metrics are misleading</td><td><span class="b b-med">Medium</span></td><td><span class="b b-med">Medium</span></td><td>Bootstrap CIs on all metrics; p-values on IC; deflated Sharpe</td></tr>
+      <tr><td>Bayesian weight optimizer</td><td>Replace opinion-based YAML weights with data</td><td><span class="b b-high">Hard</span></td><td><span class="b b-med">Medium</span></td><td>Optimized IC &gt; default IC on held-out test window</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 class="sub">Phase 5 — Developer Experience (Weeks 15–18)</h2>
+  <div class="stage-a">Goal: a second contributor can onboard and contribute a scorer in under a day.</div>
+  <div class="tw"><table class="t">
+    <thead><tr><th>Task</th><th>Acceptance Criteria</th><th>Priority</th></tr></thead>
+    <tbody>
+      <tr><td>ADR folder with 3 decisions documented</td><td>Registry pattern, YAML weights, CSV storage rationale written</td><td><span class="b b-med">P2</span></td></tr>
+      <tr><td>Runbooks (3 minimum)</td><td>Run pipeline, add scorer, debug failed run</td><td><span class="b b-high">P1</span></td></tr>
+      <tr><td>PR template + issue templates</td><td><code>.github/PULL_REQUEST_TEMPLATE.md</code> and 2 issue templates</td><td><span class="b b-med">P2</span></td></tr>
+      <tr><td>pyproject.toml or setup.cfg</td><td>Project installable with pip install -e .; removes sys.path hacks in tests</td><td><span class="b b-high">P1</span></td></tr>
+      <tr><td>type hints on all public functions</td><td>mypy src/ --ignore-missing-imports: zero errors</td><td><span class="b b-med">P2</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 class="sub">Phase 6 — Internal Dashboard/API (Only If Signal Validates)</h2>
+  <div class="stage-b">Gate: proceed only if out-of-sample IC &gt; 0.05 and deflated Sharpe &gt; 0.3.</div>
+  <p>FastAPI REST API; SQLite → PostgreSQL migration; JWT auth; Jinja2 dashboard; APScheduler daily runs; Docker Compose.</p>
+
+  <h2 class="sub">Phase 7 — Production Deployment</h2>
+  <div class="stage-c">Cloud VPS (Railway/Render/DigitalOcean); HTTPS; automated backups; monitoring with uptime alert; WAF only if public-facing.</div>
+  <div class="pg-ftr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>Section 13 — Phased Roadmap</span></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     14–15. RISK REGISTER + FINAL REC
+══════════════════════════════════════ -->
+<div class="page page-break" id="s14">
+  <div class="pg-hdr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>June 2026</span></div>
+  <div class="section-num">SECTION 14</div>
+  <h1 class="st">Risk Register</h1>
+
+  <div class="tw"><table class="t">
+    <thead><tr><th>Risk</th><th>Severity</th><th>Probability</th><th>Impact</th><th>Mitigation</th><th>Owner</th></tr></thead>
+    <tbody>
+      <tr><td>Wrong config path causes silent misconfiguration in production</td><td><span class="b b-crit">Critical</span></td><td>High — already exists</td><td>Wrong weights used; results invalid</td><td>Fix path immediately in Phase 3</td><td>devdiv07</td></tr>
+      <tr><td>API key accidentally committed</td><td><span class="b b-crit">Critical</span></td><td>Medium</td><td>Key exposure; unauthorized API usage</td><td>gitleaks in CI; key rotation policy</td><td>devdiv07</td></tr>
+      <tr><td>Signal has no predictive value (IC ≈ 0)</td><td><span class="b b-high">High</span></td><td>Unknown — untested</td><td>Platform investment wasted; project fails</td><td>Phase 4 backtester; IC threshold gate before Phase 6</td><td>devdiv07</td></tr>
+      <tr><td>Dependency vulnerability in pandas/requests/yfinance</td><td><span class="b b-high">High</span></td><td>Medium over time</td><td>Security exploit in pipeline</td><td>pip-audit in CI weekly; pin versions</td><td>CI</td></tr>
+      <tr><td>yfinance API changes or rate limits</td><td><span class="b b-med">Medium</span></td><td>High (yfinance is unofficial)</td><td>Market enrichment fails; pipeline partially breaks</td><td>Cache per-ticker per-date; fallback to None not crash</td><td>devdiv07</td></tr>
+      <tr><td>Implementation plan phase naming confuses contributor</td><td><span class="b b-med">Medium</span></td><td>Certain if unresolved</td><td>Contributor builds wrong feature</td><td>Rename plan phases in this roadmap; add note to plan</td><td>devdiv07</td></tr>
+      <tr><td>Backtester introduces look-ahead bias</td><td><span class="b b-high">High</span></td><td>Medium — common mistake</td><td>Falsely validated signal; wrong production decisions</td><td>Universe manager; data integrity freeze; explicit no-future-leakage test</td><td>devdiv07</td></tr>
+      <tr><td>Tests deleted as "exploratory"</td><td><span class="b b-med">Medium</span></td><td>Present — comment exists</td><td>Regression detected too late</td><td>Remove deletion comment; treat all tests as permanent</td><td>devdiv07</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="section-num" style="margin-top:22px;" id="s15">SECTION 15</div>
+  <h1 class="st">Final Recommendation</h1>
+
+  <div class="call call-warn">
+    <div class="call-title">Direct Assessment</div>
+    MIRROR has strong bones: clean architecture, meaningful enrichment layers, a well-designed scorer registry, and verified edge-case handling. The gaps are operational, not architectural. <strong>Fix the operational gaps before adding any new features.</strong>
+  </div>
+
+  <p><strong>Recommended execution order:</strong></p>
+  <ol>
+    <li><strong>Fix the config path bug</strong> (30 minutes — single line change, verified path, tests pass)</li>
+    <li><strong>Add GitHub Actions CI</strong> (2 hours — pytest + pip-audit; provides safety net for all future changes)</li>
+    <li><strong>Add structured logging and run IDs</strong> (1 day — transforms observability completely)</li>
+    <li><strong>Add CONTRIBUTING.md and PR template</strong> (half day — enables any future contributor)</li>
+    <li><strong>Replace xml.etree with defusedxml and add request timeouts</strong> (1 hour — closes two security gaps)</li>
+    <li><strong>Write pipeline e2e test</strong> (half day — the most critical missing test)</li>
+    <li><strong>Build the backtester and validate the signal</strong> — this is the highest-value technical work and determines whether Phase 6 is worth doing at all.</li>
+  </ol>
+
+  <p style="margin-top:12px;"><strong>What not to build yet:</strong> API layer, web dashboard, PostgreSQL, Docker, Kubernetes, Redis, GraphQL, RBAC. None of these have a paying user or a validated signal to serve. Build the foundation. Prove the signal. Then build the platform.</p>
+  <div class="pg-ftr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>Sections 14–15</span></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     16. ACTION CHECKLIST
+══════════════════════════════════════ -->
+<div class="page page-break" id="s16">
+  <div class="pg-hdr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>June 2026</span></div>
+  <div class="section-num">SECTION 16</div>
+  <h1 class="st">Action Checklist</h1>
+
+  <h2 class="sub">Immediate — Next 7 Days</h2>
+  <div class="chk-item"><div class="chk-box"></div><span>Fix config path in <code>src/pipeline/run_scoring_pipeline.py:50</code> → <code>'config/scoring.yaml'</code></span></div>
+  <div class="chk-item"><div class="chk-box"></div><span>Remove exploratory deletion comment from <code>tests/test_conviction.py</code></span></div>
+  <div class="chk-item"><div class="chk-box"></div><span>Verify .env is gitignored: <code>git check-ignore .env</code></span></div>
+  <div class="chk-item"><div class="chk-box"></div><span>Add <code>timeout=30</code> to all <code>requests.get()</code> calls in parsers and enrichment</span></div>
+  <div class="chk-item"><div class="chk-box"></div><span>Run <code>pip install pip-audit &amp;&amp; pip-audit</code> — review any CVEs</span></div>
+  <div class="chk-item"><div class="chk-box"></div><span>Rename implementation plan phases to avoid Phase 2 naming collision</span></div>
+  <div class="chk-item"><div class="chk-box"></div><span>Pin all dependency versions: <code>pip freeze &gt; requirements.txt</code> in venv</span></div>
+
+  <h2 class="sub">Next 30 Days</h2>
+  <div class="chk-item"><div class="chk-box"></div><span>Create <code>.github/workflows/ci.yml</code> running pytest + pyflakes + pip-audit</span></div>
+  <div class="chk-item"><div class="chk-box"></div><span>Add structured logging with run IDs to replace all print() calls</span></div>
+  <div class="chk-item"><div class="chk-box"></div><span>Write <code>tests/test_pipeline_e2e.py</code> using a 100-row fixture CSV</span></div>
+  <div class="chk-item"><div class="chk-box"></div><span>Replace <code>xml.etree.ElementTree</code> with <code>defusedxml.ElementTree</code></span></div>
+  <div class="chk-item"><div class="chk-box"></div><span>Write <code>CONTRIBUTING.md</code> with setup guide and coding standards</span></div>
+  <div class="chk-item"><div class="chk-box"></div><span>Write <code>.github/PULL_REQUEST_TEMPLATE.md</code></span></div>
+  <div class="chk-item"><div class="chk-box"></div><span>Add run metadata writer: <code>runs/{run_id}/run_metadata.json</code></span></div>
+  <div class="chk-item"><div class="chk-box"></div><span>Write <code>docs/runbooks/how_to_run_pipeline.md</code></span></div>
+
+  <h2 class="sub">Next 90 Days</h2>
+  <div class="chk-item"><div class="chk-box"></div><span>Implement <code>universe_manager.py</code> (survivorship-bias-free universe control)</span></div>
+  <div class="chk-item"><div class="chk-box"></div><span>Implement <code>historical_data_builder.py</code> (6-month rolling signal + forward returns dataset)</span></div>
+  <div class="chk-item"><div class="chk-box"></div><span>Implement <code>experiment_tracker.py</code> (config hash + git commit per run)</span></div>
+  <div class="chk-item"><div class="chk-box"></div><span>Implement <code>backtester.py</code> (walk-forward; IC, hit rate, Sharpe, deflated Sharpe)</span></div>
+  <div class="chk-item"><div class="chk-box"></div><span>Add type hints to all public functions in src/; run mypy clean</span></div>
+  <div class="chk-item"><div class="chk-box"></div><span>Write <code>docs/adr/</code> with 3 architecture decision records</span></div>
+  <div class="chk-item"><div class="chk-box"></div><span>Dockerize the pipeline: <code>docker run mirror python src/pipeline/run_scoring_pipeline.py</code></span></div>
+
+  <h2 class="sub">Before Adding Teammates</h2>
+  <div class="chk-item"><div class="chk-box"></div><span>CONTRIBUTING.md complete with local setup, test guide, coding standards</span></div>
+  <div class="chk-item"><div class="chk-box"></div><span>CI green on main branch with badge in README</span></div>
+  <div class="chk-item"><div class="chk-box"></div><span>All 3 runbooks written and tested by you first</span></div>
+  <div class="chk-item"><div class="chk-box"></div><span>Branch protection on main: require PR + CI passing before merge</span></div>
+  <div class="chk-item"><div class="chk-box"></div><span>Exploratory comments removed from all test files</span></div>
+  <div class="chk-item"><div class="chk-box"></div><span>Phase naming conflict resolved in implementation plan</span></div>
+
+  <h2 class="sub">Before Any Public Release</h2>
+  <div class="chk-item"><div class="chk-box"></div><span>Out-of-sample IC &gt; 0.05 confirmed by walk-forward backtester</span></div>
+  <div class="chk-item"><div class="chk-box"></div><span>Deflated Sharpe &gt; 0.3 (accounts for parameter search iterations)</span></div>
+  <div class="chk-item"><div class="chk-box"></div><span>API auth (JWT) implemented and tested</span></div>
+  <div class="chk-item"><div class="chk-box"></div><span>Rate limiting on all public endpoints</span></div>
+  <div class="chk-item"><div class="chk-box"></div><span>Automated daily backup of database</span></div>
+  <div class="chk-item"><div class="chk-box"></div><span>HTTPS with valid certificate on deployment</span></div>
+  <div class="chk-item"><div class="chk-box"></div><span>Uptime monitoring with alert on failure</span></div>
+  <div class="pg-ftr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>Section 16 — Action Checklist</span></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     17. APPENDIX
+══════════════════════════════════════ -->
+<div class="page page-break" id="s17">
+  <div class="pg-hdr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>June 2026</span></div>
+  <div class="section-num">SECTION 17</div>
+  <h1 class="st">Appendix</h1>
+
+  <h2 class="sub">A. Files Created by This Report</h2>
+  <div class="tw"><table class="t">
+    <thead><tr><th>File</th><th>Type</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td><code>docs/MIRROR_Future_Roadmap_Production_Plan.html</code></td><td>This report (HTML/PDF)</td><td>Created now</td></tr>
+      <tr><td><code>docs/roadmap.md</code></td><td>Markdown version of this report</td><td>Created now</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 class="sub">B. Files That Require Immediate Attention</h2>
+  <div class="tw"><table class="t">
+    <thead><tr><th>File</th><th>Issue</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr><td><code>src/pipeline/run_scoring_pipeline.py:50</code></td><td>Wrong config path: <code>'insider_signal_phase1/config/scoring.yaml'</code></td><td>Change to <code>'config/scoring.yaml'</code></td></tr>
+      <tr><td><code>tests/test_conviction.py</code> (last line)</td><td>Exploratory deletion comment</td><td>Remove comment; treat as permanent test</td></tr>
+      <tr><td><code>requirements.txt</code></td><td>Versions not pinned (<code>numpy</code> not <code>numpy==2.x.x</code>)</td><td>Run <code>pip freeze &gt; requirements.txt</code> in .venv</td></tr>
+      <tr><td><code>implementation_plan.md</code></td><td>Phase numbering conflicts with shipped Phase 2</td><td>Add note at top renaming plan phases to R3–R8</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2 class="sub">C. Recommended Git Commit Message</h2>
+  <pre>docs: add future roadmap and production plan
+
+- Add docs/MIRROR_Future_Roadmap_Production_Plan.html (PDF-ready)
+- Add docs/roadmap.md (GitHub-readable Markdown version)
+- Covers: current state assessment, 12-month phased roadmap,
+  security threat model, AI safety workflow, testing strategy,
+  observability plan, database strategy, contributor readiness
+- Flags latent bug: config path in run_scoring_pipeline.py:50
+- Flags phase naming conflict in implementation_plan.md
+
+Co-Authored-By: Claude Sonnet 4.6 &lt;noreply@anthropic.com&gt;</pre>
+
+  <h2 class="sub">D. PDF Export Instructions</h2>
+  <div class="call call-info">
+    <div class="call-title">Export Instructions</div>
+    Open <code>docs/MIRROR_Future_Roadmap_Production_Plan.html</code> in <strong>Google Chrome</strong> or <strong>Microsoft Edge</strong>.<br>
+    Press <strong>Ctrl+P</strong> → Destination: <strong>Save as PDF</strong>.<br>
+    Under More settings: enable <strong>Background graphics</strong> · Margins: <strong>None</strong>.<br>
+    Click <strong>Save</strong>. File will be ~20 pages.
+  </div>
+
+  <h2 class="sub">E. Statistical Validation Targets (Phase 4)</h2>
+  <div class="tw"><table class="t">
+    <thead><tr><th>Metric</th><th>Minimum (proceed to Phase 6)</th><th>Good</th><th>Excellent</th></tr></thead>
+    <tbody>
+      <tr><td>IC out-of-sample</td><td>&gt; 0.05</td><td>&gt; 0.10</td><td>&gt; 0.20</td></tr>
+      <tr><td>Hit rate</td><td>&gt; 55%</td><td>&gt; 60%</td><td>&gt; 65%</td></tr>
+      <tr><td>Sharpe ratio</td><td>&gt; 0.5</td><td>&gt; 1.0</td><td>&gt; 1.5</td></tr>
+      <tr><td>Deflated Sharpe</td><td>&gt; 0.3</td><td>&gt; 0.7</td><td>&gt; 1.0</td></tr>
+      <tr><td>ECE (calibration)</td><td>&lt; 0.15</td><td>&lt; 0.10</td><td>&lt; 0.05</td></tr>
+      <tr><td>IC p-value</td><td>&lt; 0.05</td><td>&lt; 0.01</td><td>&lt; 0.001</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="pg-ftr"><span>MIRROR — Future Roadmap &amp; Production Plan</span><span>Section 17 — Appendix | End of Document</span></div>
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'neutral',
+    themeVariables: {
+      primaryColor: '#e3f2fd',
+      primaryTextColor: '#0d1b2a',
+      primaryBorderColor: '#1565c0',
+      lineColor: '#4a5568',
+      secondaryColor: '#f4f6f9',
+      tertiaryColor: '#fff',
+      fontSize: '12px'
+    },
+    flowchart: { curve: 'basis', padding: 14 },
+    sequence: { actorMargin: 40 }
+  });
+</script>
+</body>
+</html>

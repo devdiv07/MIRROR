@@ -1,0 +1,2106 @@
+<!DOCTYPE html>
+<!--
+  MIRROR — Project Architecture & Technical Change Report
+  PDF Export: Open in Chrome/Edge → Ctrl+P → Save as PDF → Enable "Background graphics"
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MIRROR — Architecture & Technical Change Report</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  /* ── Reset & Base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy:      #0d1b2a;
+    --navy-mid:  #1a2f4a;
+    --navy-light:#2e4a6a;
+    --accent:    #1565c0;
+    --accent2:   #0288d1;
+    --gray-100:  #f4f6f9;
+    --gray-200:  #e8ecf2;
+    --gray-400:  #9aabbc;
+    --gray-700:  #4a5568;
+    --white:     #ffffff;
+    --text:      #1a202c;
+    --mono:      'Courier New', Courier, monospace;
+    --sans:      -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  body {
+    font-family: var(--sans);
+    font-size: 13.5px;
+    line-height: 1.65;
+    color: var(--text);
+    background: #dce3ed;
+  }
+
+  /* ── Page Container ── */
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    background: var(--white);
+    margin: 16px auto;
+    padding: 22mm 20mm 18mm 20mm;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+    position: relative;
+  }
+
+  /* ── Page Break ── */
+  .page-break { page-break-before: always; }
+
+  /* ── Cover Page ── */
+  .cover {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 257mm;
+    padding: 0;
+  }
+  .cover-stripe {
+    width: 6px;
+    height: 90px;
+    background: linear-gradient(180deg, var(--accent) 0%, var(--accent2) 100%);
+    border-radius: 3px;
+    margin-bottom: 28px;
+  }
+  .cover-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent2);
+    margin-bottom: 10px;
+  }
+  .cover-title {
+    font-size: 34px;
+    font-weight: 800;
+    color: var(--navy);
+    line-height: 1.15;
+    margin-bottom: 12px;
+  }
+  .cover-title span { color: var(--accent); }
+  .cover-subtitle {
+    font-size: 14.5px;
+    color: var(--navy-light);
+    font-weight: 500;
+    max-width: 420px;
+    margin-bottom: 40px;
+    line-height: 1.5;
+  }
+  .cover-meta-block {
+    background: var(--gray-100);
+    border-left: 4px solid var(--accent);
+    border-radius: 4px;
+    padding: 18px 24px;
+    min-width: 340px;
+    margin-bottom: 40px;
+  }
+  .cover-meta-block table { width: 100%; }
+  .cover-meta-block td { padding: 4px 0; font-size: 13px; }
+  .cover-meta-block td:first-child { font-weight: 700; color: var(--navy); width: 110px; }
+  .cover-meta-block td:last-child { color: var(--gray-700); }
+  .cover-divider {
+    width: 100%;
+    border: none;
+    border-top: 1.5px solid var(--gray-200);
+    margin: 32px 0 24px 0;
+  }
+  .cover-footer-note {
+    font-size: 11px;
+    color: var(--gray-400);
+    font-style: italic;
+  }
+  .cover-badge-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 32px; }
+  .cover-badge {
+    background: var(--navy);
+    color: var(--white);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+  }
+
+  /* ── Section Headers ── */
+  .section-num {
+    display: inline-block;
+    background: var(--accent);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 9px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+    letter-spacing: 0.08em;
+  }
+  h1.section-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--navy);
+    margin-bottom: 6px;
+    border-bottom: 2.5px solid var(--accent);
+    padding-bottom: 8px;
+  }
+  h2.sub-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--navy-mid);
+    margin: 22px 0 10px 0;
+    padding-left: 12px;
+    border-left: 3px solid var(--accent2);
+  }
+  h3.sub2-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--navy-light);
+    margin: 16px 0 8px 0;
+  }
+
+  /* ── Paragraphs ── */
+  p { margin-bottom: 10px; color: var(--gray-700); }
+  ul, ol { margin: 8px 0 12px 20px; color: var(--gray-700); }
+  li { margin-bottom: 4px; }
+
+  /* ── Tables ── */
+  .tbl-wrap { overflow-x: auto; margin: 14px 0; }
+  table.std {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  table.std thead tr {
+    background: var(--navy);
+    color: white;
+  }
+  table.std thead th {
+    padding: 9px 11px;
+    text-align: left;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  table.std tbody tr:nth-child(even) { background: var(--gray-100); }
+  table.std tbody td {
+    padding: 8px 11px;
+    border-bottom: 1px solid var(--gray-200);
+    vertical-align: top;
+  }
+
+  /* ── Badges ── */
+  .badge {
+    display: inline-block;
+    border-radius: 10px;
+    padding: 2px 9px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+  .badge-active  { background:#e3f2fd; color:#0d47a1; }
+  .badge-legacy  { background:#fff3e0; color:#e65100; }
+  .badge-config  { background:#e8f5e9; color:#1b5e20; }
+  .badge-output  { background:#f3e5f5; color:#4a148c; }
+  .badge-test    { background:#e0f7fa; color:#006064; }
+  .badge-risk    { background:#fce4ec; color:#880e4f; }
+  .badge-critical{ background:#b71c1c; color:#fff; }
+  .badge-high    { background:#e53935; color:#fff; }
+  .badge-medium  { background:#f57c00; color:#fff; }
+  .badge-low     { background:#388e3c; color:#fff; }
+
+  /* ── Callout Boxes ── */
+  .callout {
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 16px 0;
+    border-left: 5px solid;
+  }
+  .callout-info   { background:#e3f2fd; border-color: var(--accent2); }
+  .callout-warn   { background:#fff8e1; border-color:#f9a825; }
+  .callout-danger { background:#ffebee; border-color:#c62828; }
+  .callout-success{ background:#e8f5e9; border-color:#2e7d32; }
+  .callout-title  { font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 5px; }
+
+  /* ── Code / Monospace ── */
+  code {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    background: var(--gray-100);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: #c62828;
+  }
+  pre {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: var(--navy);
+    color: #e2e8f0;
+    padding: 14px 16px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 12px 0;
+    line-height: 1.55;
+  }
+
+  /* ── Diagram Cards ── */
+  .diagram-card {
+    border: 1.5px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 18px 16px 12px 16px;
+    margin: 18px 0;
+    background: var(--gray-100);
+  }
+  .diagram-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .mermaid { text-align: center; }
+
+  /* ── Before/After Blocks ── */
+  .ba-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 14px 0;
+  }
+  .ba-before {
+    background: #fff3e0;
+    border: 1.5px solid #ffb74d;
+    border-radius: 6px;
+    padding: 14px;
+  }
+  .ba-after {
+    background: #e8f5e9;
+    border: 1.5px solid #66bb6a;
+    border-radius: 6px;
+    padding: 14px;
+  }
+  .ba-label {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .ba-before .ba-label { color: #e65100; }
+  .ba-after  .ba-label { color: #1b5e20; }
+
+  /* ── TOC ── */
+  .toc-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 5px 0;
+    border-bottom: 1px dotted var(--gray-200);
+    font-size: 13px;
+  }
+  .toc-entry a { color: var(--navy-mid); text-decoration: none; font-weight: 500; }
+  .toc-entry a:hover { color: var(--accent); }
+  .toc-pg { color: var(--gray-400); font-size: 11px; }
+  .toc-section { margin-top: 12px; }
+  .toc-sub { padding-left: 16px; font-size: 12px; }
+
+  /* ── Section card ── */
+  .section-card {
+    background: var(--gray-100);
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 14px 0;
+  }
+
+  /* ── Signal pill ── */
+  .sig-bull { color: #1b5e20; font-weight: 700; }
+  .sig-bear { color: #b71c1c; font-weight: 700; }
+
+  /* ── Page header/footer (screen only) ── */
+  .pg-header {
+    position: absolute; top: 10mm; left: 20mm; right: 20mm;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 10px; color: var(--gray-400);
+    border-bottom: 1px solid var(--gray-200);
+    padding-bottom: 4px;
+  }
+  .pg-footer {
+    position: absolute; bottom: 8mm; left: 20mm; right: 20mm;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 10px; color: var(--gray-400);
+    border-top: 1px solid var(--gray-200);
+    padding-top: 4px;
+  }
+
+  /* ── Interview block ── */
+  .interview-block {
+    background: var(--navy);
+    color: #e2e8f0;
+    border-radius: 8px;
+    padding: 24px 28px;
+    margin: 18px 0;
+    font-size: 14px;
+    line-height: 1.75;
+    font-style: italic;
+  }
+  .interview-block strong { color: #90caf9; font-style: normal; }
+
+  /* ── @media print ── */
+  @media print {
+    body { background: white; }
+    .page {
+      width: 100%;
+      margin: 0;
+      padding: 14mm 16mm 12mm 16mm;
+      box-shadow: none;
+      page-break-after: always;
+    }
+    .page-break { page-break-before: always; }
+    .no-print { display: none !important; }
+    a { color: inherit; text-decoration: none; }
+    pre { white-space: pre-wrap; word-break: break-word; }
+    .ba-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════
+     COVER PAGE
+═══════════════════════════════════════════════ -->
+<div class="page">
+  <div class="cover">
+    <div class="cover-stripe"></div>
+    <div class="cover-eyebrow">Technical Architecture Report &nbsp;·&nbsp; Phase 2 Documentation</div>
+    <div class="cover-title"><span>MIRROR</span><br>Project Architecture &<br>Technical Change Report</div>
+    <div class="cover-subtitle">
+      Multi-Signal Market Dissonance Pipeline and<br>Phase 2 Insider Conviction Engine
+    </div>
+    <div class="cover-badge-row">
+      <span class="cover-badge">Python 3.13</span>
+      <span class="cover-badge">SEC EDGAR API</span>
+      <span class="cover-badge">7-Factor Scoring</span>
+      <span class="cover-badge">31/31 Tests Passing</span>
+      <span class="cover-badge">8,013 Transactions</span>
+    </div>
+    <div class="cover-meta-block">
+      <table>
+        <tr><td>Prepared by</td><td>devdiv07 &nbsp;(raghavdharwal07@gmail.com)</td></tr>
+        <tr><td>Date</td><td>June 19, 2026</td></tr>
+        <tr><td>Version</td><td>Phase 2 Technical Documentation</td></tr>
+        <tr><td>Repository</td><td>MIRROR / main branch</td></tr>
+        <tr><td>Pipeline v1</td><td>Cognitive Dissonance Model (10 megacap tickers)</td></tr>
+        <tr><td>Pipeline v2</td><td>Conviction Engine (111 small/mid-cap tickers)</td></tr>
+        <tr><td>Test Status</td><td>31 / 31 passed — 1.44 s</td></tr>
+      </table>
+    </div>
+    <hr class="cover-divider">
+    <div class="cover-footer-note">
+      Confidential — prepared for mentor / evaluator / technical interview review.<br>
+      To export as PDF: open in Chrome or Edge → Ctrl+P → Save as PDF → enable "Background graphics".
+    </div>
+  </div>
+  <div class="pg-footer">
+    <span>MIRROR — Architecture Report</span>
+    <span>Cover</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     TABLE OF CONTENTS
+═══════════════════════════════════════════════ -->
+<div class="page page-break">
+  <div class="pg-header">
+    <span>MIRROR — Architecture &amp; Technical Change Report</span>
+    <span>June 2026</span>
+  </div>
+
+  <div class="section-num">INDEX</div>
+  <h1 class="section-title">Table of Contents</h1>
+
+  <div class="toc-section">
+    <div class="toc-entry"><a href="#exec-summary">1 &nbsp; Executive Summary</a><span class="toc-pg">3</span></div>
+    <div class="toc-entry"><a href="#overview">2 &nbsp; Project Overview</a><span class="toc-pg">4</span></div>
+    <div class="toc-entry"><a href="#arch">3 &nbsp; System Architecture</a><span class="toc-pg">5</span></div>
+    <div class="toc-entry"><a href="#files">4 &nbsp; Folder and File Structure</a><span class="toc-pg">6</span></div>
+    <div class="toc-entry"><a href="#flow">5 &nbsp; Complete Input-to-Output Flow</a><span class="toc-pg">8</span></div>
+    <div class="toc-entry"><a href="#stages">6 &nbsp; Stage-wise Pipeline Explanation</a><span class="toc-pg">9</span></div>
+    <div class="toc-sub toc-entry"><a href="#stage61">6.1 &nbsp; Insider Signal Pipeline (v1)</a><span class="toc-pg">9</span></div>
+    <div class="toc-sub toc-entry"><a href="#stage62">6.2 &nbsp; News Sentiment Pipeline</a><span class="toc-pg">9</span></div>
+    <div class="toc-sub toc-entry"><a href="#stage63">6.3 &nbsp; Price / Options Signal Pipeline</a><span class="toc-pg">10</span></div>
+    <div class="toc-sub toc-entry"><a href="#stage64">6.4 &nbsp; Dissonance Calculator</a><span class="toc-pg">10</span></div>
+    <div class="toc-sub toc-entry"><a href="#stage65">6.5 &nbsp; Phase 2 Insider Conviction Engine</a><span class="toc-pg">10</span></div>
+    <div class="toc-entry"><a href="#diagrams">7 &nbsp; Diagrams</a><span class="toc-pg">11</span></div>
+    <div class="toc-entry"><a href="#changes">8 &nbsp; Recent Changes Analysis</a><span class="toc-pg">13</span></div>
+    <div class="toc-entry"><a href="#justify">9 &nbsp; Change Justification</a><span class="toc-pg">14</span></div>
+    <div class="toc-entry"><a href="#risks">10 &nbsp; Risk and Mitigation Matrix</a><span class="toc-pg">15</span></div>
+    <div class="toc-entry"><a href="#testing">11 &nbsp; Testing Strategy</a><span class="toc-pg">16</span></div>
+    <div class="toc-entry"><a href="#nextsteps">12 &nbsp; Recommended Next Steps</a><span class="toc-pg">17</span></div>
+    <div class="toc-entry"><a href="#interview">13 &nbsp; Interview Explanation</a><span class="toc-pg">17</span></div>
+    <div class="toc-entry"><a href="#appendix">14 &nbsp; Appendix</a><span class="toc-pg">18</span></div>
+  </div>
+
+  <div class="pg-footer">
+    <span>MIRROR — Architecture Report</span>
+    <span>Table of Contents</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     1. EXECUTIVE SUMMARY
+═══════════════════════════════════════════════ -->
+<div class="page page-break" id="exec-summary">
+  <div class="pg-header">
+    <span>MIRROR — Architecture &amp; Technical Change Report</span>
+    <span>June 2026</span>
+  </div>
+
+  <div class="section-num">SECTION 1</div>
+  <h1 class="section-title">Executive Summary</h1>
+
+  <h2 class="sub-title">What MIRROR Does</h2>
+  <p>
+    MIRROR is a quantitative insider signal research platform built in Python 3.13. It ingests SEC Form 4 regulatory filings from SEC EDGAR, financial news from NewsAPI, and market data from Yahoo Finance, then produces quantitative signals that measure how insider trading activity aligns or conflicts with market sentiment and options positioning.
+  </p>
+  <p>
+    The platform operates two independent, complementary pipelines: the original Phase 1 cognitive dissonance model and the new Phase 2 multi-factor conviction engine.
+  </p>
+
+  <h2 class="sub-title">What Problem It Solves</h2>
+  <p>
+    Insider trading is a legally disclosed alpha signal — insiders must file Form 4 within two business days of any transaction. However, raw dollar amounts are a poor signal in isolation: a $1M buy by a CEO of a $200M company carries fundamentally different information from the same $1M buy at a $3T megacap. MIRROR normalizes and enriches these filings to produce a conviction signal that accounts for context.
+  </p>
+
+  <h2 class="sub-title">What the Old Architecture Was (Phase 1)</h2>
+  <div class="ba-before" style="margin:12px 0;">
+    <div class="ba-label">Phase 1 — Original (v1)</div>
+    <p style="margin:0; font-size:12.5px;">Four root-level Python scripts orchestrated by <code>run_mirror.py</code> produced a 5-point discrete insider signal (<code>±0.7, ±0.3, 0</code>) based purely on dollar thresholds. This was combined with news sentiment (TextBlob) and options put/call ratio into a single dissonance score for 10 megacap tickers. No enrichment. No role weighting. No 10b5-1 detection.</p>
+  </div>
+
+  <h2 class="sub-title">What Changed in Phase 2</h2>
+  <div class="ba-after" style="margin:12px 0;">
+    <div class="ba-label">Phase 2 — Conviction Engine</div>
+    <p style="margin:0; font-size:12.5px;">A layered <code>src/</code> architecture with 3 enrichment modules, a scorer registry pattern, 7 registered scorers, YAML-configurable weights, and 31 pytest tests. Scores are continuous floats in [−1.0, +1.0] across 8,013 transactions from 111 small/mid-cap tickers. The is_company bug was identified and fixed, preventing institutional trades from polluting signals.</p>
+  </div>
+
+  <h2 class="sub-title">Why the Change Is Technically Valuable</h2>
+  <div class="tbl-wrap">
+    <table class="std">
+      <thead><tr><th>Dimension</th><th>Phase 1</th><th>Phase 2</th><th>Gain</th></tr></thead>
+      <tbody>
+        <tr><td>Signal resolution</td><td>5 discrete values</td><td>Continuous float</td><td>Ranking precision</td></tr>
+        <tr><td>Ticker coverage</td><td>10 megacaps</td><td>111 small/mid-cap</td><td>11× more tickers</td></tr>
+        <tr><td>Transactions scored</td><td>10 rows</td><td>8,013 rows</td><td>Transaction-level detail</td></tr>
+        <tr><td>10b5-1 detection</td><td>None</td><td>1,533 flagged (19.1%)</td><td>False signal elimination</td></tr>
+        <tr><td>Test coverage</td><td>0 tests</td><td>31 tests passing</td><td>Verifiability</td></tr>
+        <tr><td>Weight tuning</td><td>Code changes required</td><td>Edit YAML only</td><td>Analyst autonomy</td></tr>
+        <tr><td>Extensibility</td><td>Hardcoded pipeline</td><td>@register_scorer pattern</td><td>Zero-touch scorer addition</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-success">
+    <div class="callout-title">Key Finding</div>
+    Phase 2 produces a well-distributed signal (mean −0.14, range −0.488 to +0.644) across 8,013 transactions. The signal is not degenerate — it reflects genuine composition of the small/mid-cap universe (more selling than buying by insiders in this period).
+  </div>
+
+  <div class="pg-footer">
+    <span>MIRROR — Architecture Report</span>
+    <span>Section 1 — Executive Summary</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     2. PROJECT OVERVIEW
+═══════════════════════════════════════════════ -->
+<div class="page page-break" id="overview">
+  <div class="pg-header">
+    <span>MIRROR — Architecture &amp; Technical Change Report</span>
+    <span>June 2026</span>
+  </div>
+
+  <div class="section-num">SECTION 2</div>
+  <h1 class="section-title">Project Overview</h1>
+
+  <h2 class="sub-title">Purpose</h2>
+  <p>MIRROR extracts quantitative conviction signals from SEC Form 4 insider trading disclosures and combines them with news sentiment and options market data to identify potential information asymmetry across publicly traded companies.</p>
+
+  <h2 class="sub-title">Users / Actors</h2>
+  <div class="tbl-wrap">
+    <table class="std">
+      <thead><tr><th>Actor</th><th>Role</th><th>Interaction</th></tr></thead>
+      <tbody>
+        <tr><td>Developer / Researcher</td><td>Primary operator</td><td>Runs pipelines, reviews CSV outputs, tunes YAML weights</td></tr>
+        <tr><td>SEC EDGAR API</td><td>External data provider</td><td>Returns Form 4 XML filings for CIK identifiers</td></tr>
+        <tr><td>NewsAPI</td><td>External data provider</td><td>Returns financial headlines; requires API key in <code>.env</code></td></tr>
+        <tr><td>Yahoo Finance (yfinance)</td><td>External data provider</td><td>Returns OHLCV, market cap, put/call ratios, 30d ADV</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="sub-title">Main Features</h2>
+  <ul>
+    <li><strong>Phase 1:</strong> Cognitive dissonance scoring — detects contradiction between insider activity, news sentiment, and options positioning for 10 megacap tickers.</li>
+    <li><strong>Phase 2:</strong> Multi-factor conviction engine — enriches each Form 4 transaction with ownership context, market cap normalization, and 10b5-1 plan detection, then scores via 7 registered scorers.</li>
+    <li><strong>Scorer registry:</strong> New scorers can be added by creating one decorated Python file — zero changes to the aggregator.</li>
+    <li><strong>YAML-driven configuration:</strong> Analysts can change weights, enable/disable scorers, or A/B test configurations without Python edits.</li>
+    <li><strong>Entity filer gate:</strong> Institutional (non-discretionary) trades are hard-gated to a signal of 0.0 and excluded from conviction ranking.</li>
+  </ul>
+
+  <h2 class="sub-title">Technology Stack</h2>
+  <div class="tbl-wrap">
+    <table class="std">
+      <thead><tr><th>Component</th><th>Technology</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td>Language</td><td>Python 3.13</td><td>All pipeline code</td></tr>
+        <tr><td>Data manipulation</td><td>pandas</td><td>DataFrame transformations, CSV I/O</td></tr>
+        <tr><td>Market data</td><td>yfinance</td><td>Market cap, OHLCV, options chains, 30d ADV</td></tr>
+        <tr><td>Sentiment analysis</td><td>TextBlob</td><td>Polarity scoring on news headlines</td></tr>
+        <tr><td>News data</td><td>NewsAPI (REST)</td><td>Financial headlines per ticker</td></tr>
+        <tr><td>Insider filings</td><td>SEC EDGAR REST API</td><td>Form 4 XML parsing</td></tr>
+        <tr><td>XML parsing</td><td>xml.etree.ElementTree</td><td>Form 4 field extraction</td></tr>
+        <tr><td>Configuration</td><td>PyYAML</td><td>Scorer weights and flags</td></tr>
+        <tr><td>Testing</td><td>pytest</td><td>31 tests across 4 modules</td></tr>
+        <tr><td>Storage</td><td>Flat CSV files</td><td>No database; research workflow</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="sub-title">Architecture Type</h2>
+  <div class="section-card">
+    <p><strong>Pattern:</strong> Staged ETL pipeline with a plugin-based scorer registry.</p>
+    <p><strong>Storage:</strong> Flat file (CSV). SQLite upgrade planned for Phase 3.</p>
+    <p><strong>Execution:</strong> Sequential, single-process. Each stage reads the previous stage's CSV output.</p>
+    <p><strong>Configurability:</strong> Runtime behavior controlled via <code>config/scoring.yaml</code> and <code>config/universe_smallmid.txt</code> — no code changes needed for common tuning tasks.</p>
+    <p style="margin:0;"><strong>Extensibility:</strong> <code>@register_scorer</code> decorator pattern means adding a scorer = creating one file + adding one YAML block.</p>
+  </div>
+
+  <div class="pg-footer">
+    <span>MIRROR — Architecture Report</span>
+    <span>Section 2 — Project Overview</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     3. SYSTEM ARCHITECTURE
+═══════════════════════════════════════════════ -->
+<div class="page page-break" id="arch">
+  <div class="pg-header">
+    <span>MIRROR — Architecture &amp; Technical Change Report</span>
+    <span>June 2026</span>
+  </div>
+
+  <div class="section-num">SECTION 3</div>
+  <h1 class="section-title">System Architecture</h1>
+
+  <p>The high-level architecture shows both pipelines and all external data sources. Phase 1 (v1 Dissonance Model) and Phase 2 (Conviction Engine) share the SEC EDGAR data source but operate independently and produce separate output CSVs.</p>
+
+  <div class="diagram-card">
+    <div class="diagram-label">Diagram A — High-Level Architecture</div>
+    <div class="mermaid">
+flowchart TD
+    DEV(["👤 Developer / Researcher"])
+
+    subgraph EXT["External Data Sources"]
+        SEC["SEC EDGAR API\nForm 4 Filings"]
+        NAPI["NewsAPI\nFinancial Headlines"]
+        YF["Yahoo Finance\nyfinance"]
+    end
+
+    subgraph V1["Phase 1 — Dissonance Pipeline"]
+        S1["insider_parser.py\nStage 1: Insider Signal"]
+        S2["NEWS_SENTIMENT.PY\nStage 2: News Sentiment"]
+        S3["price_signal.py\nStage 3: Options Signal"]
+        S4["dissonance_calculator.py\nStage 4: Dissonance Score"]
+        ORCH["run_mirror.py\nOrchestrator"]
+    end
+
+    subgraph V2["Phase 2 — Conviction Engine"]
+        P_FETCH["sec_filings_fetcher.py\nEDAGAR Ingestion"]
+        P_PARSE["insider_parser_v2.py\nForm 4 Parser"]
+        P_OWN["enrich_ownership.py\nOwnership %"]
+        P_MKT["enrich_market_context.py\nMarket Cap + ADV"]
+        P_10B["enrich_tenb51.py\n10b5-1 Detection"]
+        P_AGG["aggregator.py\n7-Scorer Engine"]
+        P_PIPE["run_scoring_pipeline.py\nOrchestrator"]
+    end
+
+    subgraph DATA["CSV Output Layer"]
+        IT[("insider_transactions.csv")]
+        NS[("news_sentiment_summary.csv")]
+        PS[("price_signals.csv")]
+        DS[("dissonance_scores.csv")]
+        IS2[("insider_signals_phase2.csv")]
+    end
+
+    subgraph CFG["Configuration"]
+        ENV[".env — API keys"]
+        YAML["config/scoring.yaml\nScorer weights"]
+        UNI["config/universe_smallmid.txt\n146 tickers"]
+    end
+
+    DEV --> ORCH & P_PIPE
+    SEC --> S1 & P_FETCH
+    NAPI --> S2
+    YF --> S3 & P_MKT
+    ENV --> S2 & P_FETCH
+    YAML --> P_AGG
+    UNI --> P_FETCH
+
+    ORCH --> S1 & S2 & S3
+    S1 --> IT
+    S2 --> NS
+    S3 --> PS
+    IT & NS & PS --> S4
+    S4 --> DS
+
+    P_FETCH --> P_PARSE --> IT
+    IT --> P_OWN --> P_MKT --> P_10B --> P_PIPE
+    P_PIPE --> P_AGG --> IS2
+
+    DS & IS2 --> DEV
+    </div>
+  </div>
+
+  <div class="pg-footer">
+    <span>MIRROR — Architecture Report</span>
+    <span>Section 3 — System Architecture</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     4. FILE / FOLDER STRUCTURE
+═══════════════════════════════════════════════ -->
+<div class="page page-break" id="files">
+  <div class="pg-header">
+    <span>MIRROR — Architecture &amp; Technical Change Report</span>
+    <span>June 2026</span>
+  </div>
+
+  <div class="section-num">SECTION 4</div>
+  <h1 class="section-title">Folder and File Structure</h1>
+
+  <pre>MIRROR/
+├── src/                          ← Phase 2 production code
+│   ├── parsers/
+│   │   ├── sec_filings_fetcher.py
+│   │   ├── insider_parser_v2.py
+│   │   └── universe.py
+│   ├── enrichment/
+│   │   ├── enrich_ownership.py
+│   │   ├── enrich_market_context.py
+│   │   └── enrich_tenb51.py
+│   ├── scoring/
+│   │   ├── registry.py  __init__.py  aggregator.py
+│   │   ├── conviction.py  role.py  market_cap.py
+│   │   ├── cluster.py  liquidity.py
+│   │   ├── routine_penalty.py  tenb_penalty.py
+│   └── pipeline/
+│       └── run_scoring_pipeline.py
+├── config/
+│   ├── scoring.yaml
+│   └── universe_smallmid.txt
+├── tests/
+│   ├── test_conviction.py  test_cluster.py
+│   ├── test_10b51_extraction.py  test_entity_filer.py
+├── legacy/                       ← Phase 1 archived
+│   ├── run_mirror.py  dissonance_calculator.py
+│   ├── price_signal.py  insider_parser.py
+├── data/                         ← gitignored
+├── results/                      ← gitignored
+├── docs/
+├── NEWS_SENTIMENT.PY             ← Active Phase 1 stage
+├── insider_parser.py             ← Deprecated root copy
+└── .env  requirements.txt</pre>
+
+  <h2 class="sub-title">File Responsibility Table</h2>
+  <div class="tbl-wrap">
+    <table class="std">
+      <thead>
+        <tr>
+          <th>File / Folder</th>
+          <th>Layer</th>
+          <th>Responsibility</th>
+          <th>Input</th>
+          <th>Output</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>src/parsers/sec_filings_fetcher.py</code></td>
+          <td>Ingestion</td>
+          <td>SEC EDGAR API → raw filing CSV for 146-ticker universe</td>
+          <td>universe_smallmid.txt, .env</td>
+          <td>insider_filings.csv</td>
+          <td><span class="badge badge-active">Active</span></td>
+        </tr>
+        <tr>
+          <td><code>src/parsers/insider_parser_v2.py</code></td>
+          <td>Parsing</td>
+          <td>Form 4 XML parser; extracts ownership, role flags, 10b5-1; is_company fix applied</td>
+          <td>insider_filings.csv</td>
+          <td>insider_transactions.csv</td>
+          <td><span class="badge badge-active">Active</span></td>
+        </tr>
+        <tr>
+          <td><code>src/parsers/universe.py</code></td>
+          <td>Parsing</td>
+          <td>Resolves ticker symbol → SEC CIK identifier</td>
+          <td>company_tickers.json</td>
+          <td>CIK lookup dict</td>
+          <td><span class="badge badge-active">Active</span></td>
+        </tr>
+        <tr>
+          <td><code>src/enrichment/enrich_ownership.py</code></td>
+          <td>Enrichment</td>
+          <td>3-strategy ownership % computation (shares_before → pct_holdings_transacted)</td>
+          <td>insider_transactions.csv</td>
+          <td>enriched DataFrame</td>
+          <td><span class="badge badge-active">Active</span></td>
+        </tr>
+        <tr>
+          <td><code>src/enrichment/enrich_market_context.py</code></td>
+          <td>Enrichment</td>
+          <td>yfinance market cap + 30-day ADV per ticker</td>
+          <td>enriched DataFrame</td>
+          <td>enriched DataFrame</td>
+          <td><span class="badge badge-active">Active</span></td>
+        </tr>
+        <tr>
+          <td><code>src/enrichment/enrich_tenb51.py</code></td>
+          <td>Enrichment</td>
+          <td>10b5-1 plan detection via XML tag + footnote regex</td>
+          <td>enriched DataFrame</td>
+          <td>is_10b51_plan flag column</td>
+          <td><span class="badge badge-active">Active</span></td>
+        </tr>
+        <tr>
+          <td><code>src/scoring/registry.py</code></td>
+          <td>Scoring</td>
+          <td>@register_scorer decorator; maintains SCORER_REGISTRY dict</td>
+          <td>—</td>
+          <td>SCORER_REGISTRY</td>
+          <td><span class="badge badge-active">Active</span></td>
+        </tr>
+        <tr>
+          <td><code>src/scoring/aggregator.py</code></td>
+          <td>Scoring</td>
+          <td>YAML-driven weighted aggregation; explain() method; clamp to [−1,+1]</td>
+          <td>SCORER_REGISTRY, scoring.yaml</td>
+          <td>conviction_signal float</td>
+          <td><span class="badge badge-active">Active</span></td>
+        </tr>
+        <tr>
+          <td><code>src/scoring/conviction.py</code></td>
+          <td>Scoring</td>
+          <td>% of holdings transacted — dominant scorer (weight: +0.30)</td>
+          <td>pct_holdings_transacted</td>
+          <td>score [0,1]</td>
+          <td><span class="badge badge-active">Active</span></td>
+        </tr>
+        <tr>
+          <td><code>src/scoring/role.py</code></td>
+          <td>Scoring</td>
+          <td>Role weight map: CEO=1.0, CFO=0.90, Director=0.55 (weight: +0.20)</td>
+          <td>title / is_officer / is_director</td>
+          <td>score [0,1]</td>
+          <td><span class="badge badge-active">Active</span></td>
+        </tr>
+        <tr>
+          <td><code>src/scoring/market_cap.py</code></td>
+          <td>Scoring</td>
+          <td>Trade size normalized by market cap (weight: +0.15)</td>
+          <td>dollar_value, market_cap</td>
+          <td>score [0,1]</td>
+          <td><span class="badge badge-active">Active</span></td>
+        </tr>
+        <tr>
+          <td><code>src/scoring/cluster.py</code></td>
+          <td>Scoring</td>
+          <td>Multi-insider confirmation — same-direction trades in window (weight: +0.15)</td>
+          <td>cluster_count</td>
+          <td>score [0,1]</td>
+          <td><span class="badge badge-active">Active</span></td>
+        </tr>
+        <tr>
+          <td><code>src/scoring/liquidity.py</code></td>
+          <td>Scoring</td>
+          <td>Trade size vs 30-day ADV (weight: +0.10)</td>
+          <td>dollar_value, avg_30d_dollar_volume</td>
+          <td>score [0,1]</td>
+          <td><span class="badge badge-active">Active</span></td>
+        </tr>
+        <tr>
+          <td><code>src/scoring/routine_penalty.py</code></td>
+          <td>Scoring</td>
+          <td>Seasonal calendar pattern penalty — zero predictive power trades (weight: −0.20)</td>
+          <td>transaction_date</td>
+          <td>penalty [0,1]</td>
+          <td><span class="badge badge-active">Active</span></td>
+        </tr>
+        <tr>
+          <td><code>src/scoring/tenb_penalty.py</code></td>
+          <td>Scoring</td>
+          <td>10b5-1 pre-planned trade penalty (weight: −0.25)</td>
+          <td>is_10b51_plan</td>
+          <td>penalty [0,1]</td>
+          <td><span class="badge badge-active">Active</span></td>
+        </tr>
+        <tr>
+          <td><code>src/pipeline/run_scoring_pipeline.py</code></td>
+          <td>Orchestration</td>
+          <td>6-stage Phase 2 orchestrator: fetch → parse → enrich × 3 → score</td>
+          <td>All upstream files</td>
+          <td>insider_signals_phase2.csv</td>
+          <td><span class="badge badge-active">Active</span></td>
+        </tr>
+        <tr>
+          <td><code>config/scoring.yaml</code></td>
+          <td>Configuration</td>
+          <td>Scorer weights, enable/disable flags; single source of truth for weight tuning</td>
+          <td>—</td>
+          <td>Config dict at runtime</td>
+          <td><span class="badge badge-config">Config</span></td>
+        </tr>
+        <tr>
+          <td><code>config/universe_smallmid.txt</code></td>
+          <td>Configuration</td>
+          <td>146-ticker curated small/mid-cap universe for Phase 2 data pull</td>
+          <td>—</td>
+          <td>Ticker list</td>
+          <td><span class="badge badge-config">Config</span></td>
+        </tr>
+        <tr>
+          <td><code>NEWS_SENTIMENT.PY</code></td>
+          <td>Phase 1 Stage 2</td>
+          <td>NewsAPI fetch + 4-layer filter + TextBlob polarity scoring</td>
+          <td>NewsAPI, .env</td>
+          <td>news_sentiment_summary.csv</td>
+          <td><span class="badge badge-active">Active</span></td>
+        </tr>
+        <tr>
+          <td><code>legacy/run_mirror.py</code></td>
+          <td>Phase 1 Orchestration</td>
+          <td>Original pipeline orchestrator — archived for reference</td>
+          <td>All Phase 1 scripts</td>
+          <td>dissonance_scores.csv</td>
+          <td><span class="badge badge-legacy">Legacy</span></td>
+        </tr>
+        <tr>
+          <td><code>legacy/dissonance_calculator.py</code></td>
+          <td>Phase 1 Scoring</td>
+          <td>Weighted dissonance formula: C1×0.5 + C2×0.3 + C3×0.2</td>
+          <td>3 signal CSVs</td>
+          <td>dissonance_scores.csv</td>
+          <td><span class="badge badge-legacy">Legacy</span></td>
+        </tr>
+        <tr>
+          <td><code>insider_parser.py</code> (root)</td>
+          <td>Deprecated</td>
+          <td>v1 Form 4 parser — duplicate of legacy/insider_parser.py at root level</td>
+          <td>SEC EDGAR</td>
+          <td>insider_transactions.csv</td>
+          <td><span class="badge badge-risk">Deprecated</span></td>
+        </tr>
+        <tr>
+          <td><code>tests/</code></td>
+          <td>Testing</td>
+          <td>31 pytest tests across conviction, cluster, 10b5-1, entity filer gate</td>
+          <td>src/ modules</td>
+          <td>Pass / Fail report</td>
+          <td><span class="badge badge-test">Test</span></td>
+        </tr>
+        <tr>
+          <td><code>results/</code></td>
+          <td>Output</td>
+          <td>Pipeline output CSVs (gitignored)</td>
+          <td>Pipeline runs</td>
+          <td>CSV files</td>
+          <td><span class="badge badge-output">Output</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pg-footer">
+    <span>MIRROR — Architecture Report</span>
+    <span>Section 4 — File Structure</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     5. INPUT-TO-OUTPUT FLOW
+═══════════════════════════════════════════════ -->
+<div class="page page-break" id="flow">
+  <div class="pg-header">
+    <span>MIRROR — Architecture &amp; Technical Change Report</span>
+    <span>June 2026</span>
+  </div>
+
+  <div class="section-num">SECTION 5</div>
+  <h1 class="section-title">Complete Input-to-Output Flow</h1>
+
+  <p>Data enters the system from three external APIs and moves through a deterministic, staged pipeline. Each stage writes a CSV that serves as the next stage's input — enabling independent re-runs of any stage without re-fetching upstream data.</p>
+
+  <div class="diagram-card">
+    <div class="diagram-label">Phase 2 — Data Flow (Input to Output)</div>
+    <div class="mermaid">
+flowchart LR
+    A["🌐 SEC EDGAR\nForm 4 XML"] --> B["sec_filings_fetcher.py\nAPI ingestion"]
+    B --> C["insider_filings.csv\nraw filing index"]
+    C --> D["insider_parser_v2.py\nXML extraction"]
+    D --> E["insider_transactions.csv\n8,013 rows / 111 tickers"]
+
+    E --> F["enrich_ownership.py\npct_holdings_transacted"]
+    F --> G["enrich_market_context.py\nmarket_cap + 30d ADV"]
+    G --> H["enrich_tenb51.py\nis_10b51_plan flag"]
+
+    H --> I["aggregator.py\n7 scorers × YAML weights"]
+    I --> J["insider_signals_phase2.csv\nconviction_signal per row"]
+    J --> K["📊 Researcher\nAnalysis / Backtest"]
+
+    style A fill:#e3f2fd,stroke:#1565c0
+    style K fill:#e8f5e9,stroke:#2e7d32
+    style J fill:#f3e5f5,stroke:#6a1b9a
+    </div>
+  </div>
+
+  <h2 class="sub-title">Phase 1 — Dissonance Model Flow</h2>
+  <div class="diagram-card">
+    <div class="diagram-label">Phase 1 — Four-Stage Cognitive Dissonance Pipeline</div>
+    <div class="mermaid">
+flowchart LR
+    A["SEC EDGAR\nForm 4 XML"] --> B["insider_parser.py\ninsider_signal"]
+    C["NewsAPI\nHeadlines"] --> D["NEWS_SENTIMENT.PY\nmedia_signal"]
+    E["Yahoo Finance\nOHLCV + Options"] --> F["price_signal.py\noptions_signal"]
+
+    B --> G["dissonance_calculator.py"]
+    D --> G
+    F --> G
+
+    G --> H["C1×0.5 + C2×0.3 + C3×0.2\n= dissonance score 0–100"]
+    H --> I["dissonance_scores.csv\n10 tickers / 5 risk levels"]
+
+    style A fill:#e3f2fd,stroke:#1565c0
+    style C fill:#e3f2fd,stroke:#1565c0
+    style E fill:#e3f2fd,stroke:#1565c0
+    style I fill:#fff3e0,stroke:#e65100
+    </div>
+  </div>
+
+  <h2 class="sub-title">Flow Summary Table</h2>
+  <div class="tbl-wrap">
+    <table class="std">
+      <thead><tr><th>Stage</th><th>File</th><th>Input</th><th>Output</th><th>Pipeline</th></tr></thead>
+      <tbody>
+        <tr><td>1 — Ingestion</td><td><code>sec_filings_fetcher.py</code></td><td>146 tickers, SEC EDGAR API</td><td>insider_filings.csv</td><td>Phase 2</td></tr>
+        <tr><td>2 — Parsing</td><td><code>insider_parser_v2.py</code></td><td>insider_filings.csv</td><td>insider_transactions.csv (8,013 rows)</td><td>Phase 2</td></tr>
+        <tr><td>3 — Ownership Enrichment</td><td><code>enrich_ownership.py</code></td><td>insider_transactions.csv</td><td>+ pct_holdings_transacted</td><td>Phase 2</td></tr>
+        <tr><td>4 — Market Enrichment</td><td><code>enrich_market_context.py</code></td><td>enriched DataFrame</td><td>+ market_cap, avg_30d_dollar_volume</td><td>Phase 2</td></tr>
+        <tr><td>5 — 10b5-1 Enrichment</td><td><code>enrich_tenb51.py</code></td><td>enriched DataFrame</td><td>+ is_10b51_plan</td><td>Phase 2</td></tr>
+        <tr><td>6 — Scoring</td><td><code>aggregator.py</code></td><td>fully enriched DataFrame</td><td>conviction_signal [−1, +1]</td><td>Phase 2</td></tr>
+        <tr><td>1 — Insider Signal</td><td><code>insider_parser.py</code></td><td>SEC EDGAR Form 4</td><td>insider_signal {±0.7, ±0.3, 0}</td><td>Phase 1</td></tr>
+        <tr><td>2 — News Sentiment</td><td><code>NEWS_SENTIMENT.PY</code></td><td>NewsAPI + .env key</td><td>media_signal [−1, +1]</td><td>Phase 1</td></tr>
+        <tr><td>3 — Options Signal</td><td><code>price_signal.py</code></td><td>yfinance options chain</td><td>options_signal {±0.8, ±0.5, ±0.3, 0}</td><td>Phase 1</td></tr>
+        <tr><td>4 — Dissonance</td><td><code>dissonance_calculator.py</code></td><td>3 signal CSVs</td><td>dissonance score 0–100, risk level</td><td>Phase 1</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pg-footer">
+    <span>MIRROR — Architecture Report</span>
+    <span>Section 5 — Input-to-Output Flow</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     6. STAGE-WISE EXPLANATION
+═══════════════════════════════════════════════ -->
+<div class="page page-break" id="stages">
+  <div class="pg-header">
+    <span>MIRROR — Architecture &amp; Technical Change Report</span>
+    <span>June 2026</span>
+  </div>
+
+  <div class="section-num">SECTION 6</div>
+  <h1 class="section-title">Stage-wise Pipeline Explanation</h1>
+
+  <h2 class="sub-title" id="stage61">6.1 Insider Signal Pipeline (v1)</h2>
+  <div class="section-card">
+    <p><strong>Input:</strong> SEC EDGAR API — <code>GET /submissions/CIK{n}.json</code> and individual Form 4 XML endpoints.</p>
+    <p><strong>File:</strong> <code>legacy/insider_parser.py</code> (also at root as deprecated copy)</p>
+    <p><strong>Key transformations:</strong> Net buy/sell dollar computation → 5-point threshold mapping → <code>insider_signal</code> column.</p>
+    <p><strong>Output CSV:</strong> <code>data/insider_transactions.csv</code></p>
+    <p style="margin:0;"><strong>Why this matters downstream:</strong> The insider signal is combined with media and options signals in the dissonance formula. Its 5-point discrete nature limits the resolution of the final dissonance score — this is the root cause motivating Phase 2.</p>
+  </div>
+
+  <h2 class="sub-title" id="stage62">6.2 News Sentiment Pipeline</h2>
+  <div class="section-card">
+    <p><strong>Input:</strong> NewsAPI — <code>GET /everything?q=(TICKER OR name)&language=en&sortBy=relevancy</code>. Requires <code>NEWS_API_KEY</code> in <code>.env</code>.</p>
+    <p><strong>File:</strong> <code>NEWS_SENTIMENT.PY</code> (root-level, active)</p>
+    <p><strong>Key transformations:</strong> 4-layer filter (language, source, date, relevancy) → TextBlob sentiment polarity per headline → mean polarity per ticker → <code>media_signal</code>.</p>
+    <p><strong>Output CSV:</strong> <code>data/news_sentiment_summary.csv</code></p>
+    <p style="margin:0;"><strong>Why this matters downstream:</strong> The media signal represents public information. High dissonance occurs when insiders buy while media is negative — or vice versa. This is the C1 component (weight 0.50) of the dissonance formula.</p>
+  </div>
+
+  <h2 class="sub-title" id="stage63">6.3 Price / Options Signal Pipeline</h2>
+  <div class="section-card">
+    <p><strong>Input:</strong> Yahoo Finance (yfinance) — OHLCV 6 months, options chain (puts + calls).</p>
+    <p><strong>File:</strong> <code>legacy/price_signal.py</code></p>
+    <p><strong>Key transformations:</strong> Compute put/call ratio → 5 derived signals including volume anomaly, 52-week positioning, momentum → <code>options_signal</code>.</p>
+    <p><strong>Output CSV:</strong> <code>data/price_signals.csv</code></p>
+    <p style="margin:0;"><strong>Why this matters downstream:</strong> Options market represents sophisticated institutional positioning. Divergence between options sentiment and insider activity contributes to C2 (weight 0.30) in the dissonance formula.</p>
+  </div>
+
+  <h2 class="sub-title" id="stage64">6.4 Dissonance Calculator</h2>
+  <div class="section-card">
+    <p><strong>Input:</strong> All three signal CSVs — <code>insider_transactions.csv</code>, <code>news_sentiment_summary.csv</code>, <code>price_signals.csv</code>.</p>
+    <p><strong>File:</strong> <code>legacy/dissonance_calculator.py</code></p>
+    <p><strong>Formula:</strong></p>
+    <pre>C1 = |insider_signal − media_signal| / 2         # weight: 0.50
+C2 = |options_signal − media_signal| / 2         # weight: 0.30
+C3 = std_dev(insider, media, options) / 0.94     # weight: 0.20
+score = (C1×0.50 + C2×0.30 + C3×0.20) × 100     # range: 0–100</pre>
+    <p><strong>Output CSV:</strong> <code>results/dissonance_scores.csv</code></p>
+    <p style="margin:0;"><strong>Risk classification:</strong> CRITICAL ≥75 · HIGH 60–74 · MODERATE 40–59 · LOW 25–39 · MINIMAL &lt;25</p>
+  </div>
+
+  <h2 class="sub-title" id="stage65">6.5 Phase 2 Insider Conviction Engine</h2>
+  <div class="section-card">
+    <p><strong>Enrichment layers (3):</strong></p>
+    <ul>
+      <li><strong>enrich_ownership.py</strong> — 3-strategy computation of <code>pct_holdings_transacted</code>: derives % of position traded from shares_before, shares_after, and derivative class data.</li>
+      <li><strong>enrich_market_context.py</strong> — yfinance lookup per ticker: <code>market_cap</code> and <code>avg_30d_dollar_volume</code> (ADV). Caches per run.</li>
+      <li><strong>enrich_tenb51.py</strong> — two detection methods: (1) XML <code>&lt;aff10b5One&gt;</code> checkbox tag; (2) footnote regex for pre-arranged plan language. Sets <code>is_10b51_plan</code> boolean column.</li>
+    </ul>
+    <p><strong>Scorer registry:</strong> <code>registry.py</code> maintains a <code>SCORER_REGISTRY</code> dict populated at import time via the <code>@register_scorer</code> decorator. <code>__init__.py</code> imports all scorers to trigger registration.</p>
+    <p><strong>YAML weights</strong> (<code>config/scoring.yaml</code>): Each scorer has a <code>weight</code> and <code>enabled</code> flag. Analysts change weights without touching Python.</p>
+    <p><strong>Aggregation formula:</strong></p>
+    <pre>weighted_sum = Σ (scorer_fn(row) × weight for each enabled scorer)
+conviction_signal = clamp(weighted_sum × direction, −1.0, +1.0)
+# direction: BUY = +1, SELL = −1</pre>
+    <p style="margin:0;"><strong>Output CSV:</strong> <code>results/insider_signals_phase2.csv</code> — 8,013 rows, 0 range violations, continuous float signal.</p>
+  </div>
+
+  <div class="pg-footer">
+    <span>MIRROR — Architecture Report</span>
+    <span>Section 6 — Pipeline Stages</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     7. DIAGRAMS
+═══════════════════════════════════════════════ -->
+<div class="page page-break" id="diagrams">
+  <div class="pg-header">
+    <span>MIRROR — Architecture &amp; Technical Change Report</span>
+    <span>June 2026</span>
+  </div>
+
+  <div class="section-num">SECTION 7</div>
+  <h1 class="section-title">Diagrams</h1>
+
+  <h2 class="sub-title">Diagram B — Request/Pipeline Lifecycle (Phase 1 Sequence)</h2>
+  <div class="diagram-card">
+    <div class="diagram-label">Sequence Diagram — Phase 1 Full Run</div>
+    <div class="mermaid">
+sequenceDiagram
+    participant Dev as Developer
+    participant Orch as run_mirror.py
+    participant S1 as insider_parser.py
+    participant EDGAR as SEC EDGAR
+    participant S2 as NEWS_SENTIMENT.PY
+    participant NAPI as NewsAPI
+    participant S3 as price_signal.py
+    participant YF as Yahoo Finance
+    participant S4 as dissonance_calculator.py
+    participant CSV as CSV Storage
+
+    Dev->>Orch: python legacy/run_mirror.py
+    Orch->>S1: Stage 1 — Insider Signal
+    S1->>EDGAR: GET /submissions/CIK{n}.json
+    EDGAR-->>S1: Form 4 filing list
+    S1->>EDGAR: GET Form 4 XML per filing
+    EDGAR-->>S1: XML transaction data
+    S1->>CSV: insider_transactions.csv
+    S1-->>Orch: insider_signal per ticker
+
+    Orch->>S2: Stage 2 — News Sentiment
+    S2->>NAPI: GET /everything?q=(TICKER OR name)
+    NAPI-->>S2: JSON articles array
+    S2->>S2: 4-layer filter + TextBlob sentiment
+    S2->>CSV: news_sentiment_summary.csv
+    S2-->>Orch: media_signal per ticker
+
+    Orch->>S3: Stage 3 — Options Signal
+    S3->>YF: OHLCV + options chain (6 months)
+    YF-->>S3: price + put/call ratio
+    S3->>S3: compute 5 signals
+    S3->>CSV: price_signals.csv
+    S3-->>Orch: options_signal per ticker
+
+    Orch->>S4: Stage 4 — Dissonance
+    S4->>CSV: read all 3 signal CSVs
+    S4->>S4: C1×0.5 + C2×0.3 + C3×0.2
+    S4->>CSV: dissonance_scores.csv
+    S4-->>Dev: ranked ticker risk levels
+    </div>
+  </div>
+
+  <div class="pg-footer">
+    <span>MIRROR — Architecture Report</span>
+    <span>Section 7 — Diagrams</span>
+  </div>
+</div>
+
+<div class="page page-break">
+  <div class="pg-header">
+    <span>MIRROR — Architecture &amp; Technical Change Report</span>
+    <span>June 2026</span>
+  </div>
+
+  <h2 class="sub-title">Diagram C — Phase 2 Scoring Engine</h2>
+  <div class="diagram-card">
+    <div class="diagram-label">Phase 2 — 7-Scorer Conviction Engine with Registry Pattern</div>
+    <div class="mermaid">
+flowchart TD
+    subgraph REG["Registration at Import Time"]
+        direction LR
+        R1["conviction.py"] -->|@register_scorer| RD["SCORER_REGISTRY"]
+        R2["role.py"] -->|@register_scorer| RD
+        R3["market_cap.py"] -->|@register_scorer| RD
+        R4["cluster.py"] -->|@register_scorer| RD
+        R5["liquidity.py"] -->|@register_scorer| RD
+        R6["routine_penalty.py"] -->|@register_scorer| RD
+        R7["tenb_penalty.py"] -->|@register_scorer| RD
+    end
+
+    subgraph USE["Per-Row Scoring"]
+        YAML["config/scoring.yaml\nweights + enabled flags"] --> AGG["aggregator.py\naggregate(row, config)"]
+        RD --> AGG
+        AGG --> C1["conviction × 0.30"]
+        AGG --> C2["role × 0.20"]
+        AGG --> C3["market_cap × 0.15"]
+        AGG --> C4["cluster × 0.15"]
+        AGG --> C5["liquidity × 0.10"]
+        AGG --> C6["routine_penalty × −0.20"]
+        AGG --> C7["tenb_penalty × −0.25"]
+        C1 & C2 & C3 & C4 & C5 & C6 & C7 --> SUM["weighted_sum"]
+        SUM --> DIR["× direction\nBUY=+1 / SELL=−1"]
+        DIR --> CLM["clamp to −1.0 … +1.0"]
+        CLM --> OUT["conviction_signal\n[−1.0, +1.0]"]
+    end
+    </div>
+  </div>
+
+  <h2 class="sub-title">Diagram D — Cognitive Dissonance Feature Flow</h2>
+  <div class="diagram-card">
+    <div class="diagram-label">Phase 1 — Dissonance Score Derivation</div>
+    <div class="mermaid">
+flowchart TD
+    A["insider_signal\n5-point: ±0.7, ±0.3, 0"]
+    B["media_signal\nTextBlob polarity [−1, +1]"]
+    C["options_signal\nput/call derived"]
+
+    D["C1 = |insider − media| / 2\nweight = 0.50"]
+    E["C2 = |options − media| / 2\nweight = 0.30"]
+    F["C3 = stddev(all 3) / 0.94\nweight = 0.20"]
+    G["score = C1×0.50 + C2×0.30 + C3×0.20 × 100"]
+
+    H{"score value"}
+    H -->|"≥ 75"| I["CRITICAL"]
+    H -->|"60–74"| J["HIGH"]
+    H -->|"40–59"| K["MODERATE"]
+    H -->|"25–39"| L["LOW"]
+    H -->|"&lt; 25"| M["MINIMAL"]
+
+    A --> D & F
+    B --> D & E & F
+    C --> E & F
+    D & E & F --> G --> H
+    </div>
+  </div>
+
+  <h2 class="sub-title">Diagram E — Before vs After Architecture</h2>
+  <div class="diagram-card">
+    <div class="diagram-label">Architectural Transformation: Phase 1 → Phase 2</div>
+    <div class="mermaid">
+flowchart LR
+    subgraph BEFORE["Phase 1 — Root-Level Scripts"]
+        direction TB
+        B1["SEC_INSIDER.PY"]
+        B2["NEWS_SENTIMENT.PY"]
+        B3["price_signal.py"]
+        B4["dissonance_calculator.py"]
+        B5["run_mirror.py\nOrchestrator"]
+        B5 --> B1 & B2 & B3
+        B1 & B2 & B3 --> B4
+    end
+
+    subgraph AFTER["Phase 2 — Layered src/ Architecture"]
+        direction TB
+        A1["src/parsers/\n2 parsers + fetcher"]
+        A2["src/enrichment/\n3 enrichment modules"]
+        A3["src/scoring/\nregistry + 7 scorers"]
+        A4["src/pipeline/\norchestrator"]
+        A5["config/scoring.yaml\nYAML weights"]
+        A6["tests/\n4 modules, 31 tests"]
+        A1 --> A2 --> A3
+        A3 --> A4
+        A5 --> A3
+        A6 -.->|covers| A1 & A2 & A3
+    end
+
+    BEFORE -->|"Phase 2 refactor"| AFTER
+    </div>
+  </div>
+
+  <div class="pg-footer">
+    <span>MIRROR — Architecture Report</span>
+    <span>Section 7 — Diagrams (continued)</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     8. CHANGES ANALYSIS
+═══════════════════════════════════════════════ -->
+<div class="page page-break" id="changes">
+  <div class="pg-header">
+    <span>MIRROR — Architecture &amp; Technical Change Report</span>
+    <span>June 2026</span>
+  </div>
+
+  <div class="section-num">SECTION 8</div>
+  <h1 class="section-title">Recent Changes Analysis</h1>
+
+  <div class="tbl-wrap">
+    <table class="std">
+      <thead>
+        <tr>
+          <th>Area</th>
+          <th>Before (Phase 1)</th>
+          <th>After (Phase 2)</th>
+          <th>Improvement</th>
+          <th>Risk</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Signal type</strong></td>
+          <td>5 discrete values {±0.7, ±0.3, 0}</td>
+          <td>Continuous float [−1.0, +1.0]</td>
+          <td>Ranking precision; backtest-ready</td>
+          <td><span class="badge badge-low">Low</span></td>
+        </tr>
+        <tr>
+          <td><strong>Ticker coverage</strong></td>
+          <td>10 megacap tickers</td>
+          <td>111 small/mid-cap tickers</td>
+          <td>11× more actionable universe</td>
+          <td><span class="badge badge-low">Low</span></td>
+        </tr>
+        <tr>
+          <td><strong>Granularity</strong></td>
+          <td>Ticker-level (1 row per ticker)</td>
+          <td>Transaction-level (8,013 rows)</td>
+          <td>Individual trade analysis</td>
+          <td><span class="badge badge-low">Low</span></td>
+        </tr>
+        <tr>
+          <td><strong>10b5-1 filtering</strong></td>
+          <td>Not tracked — pre-planned trades counted as signal</td>
+          <td>1,533 flagged (19.1%) — penalized</td>
+          <td>Eliminates false bullish signals</td>
+          <td><span class="badge badge-low">Low</span></td>
+        </tr>
+        <tr>
+          <td><strong>Role weighting</strong></td>
+          <td>CEO = Director — same signal</td>
+          <td>CEO=1.0, CFO=0.90, Director=0.55</td>
+          <td>Information access reflected</td>
+          <td><span class="badge badge-low">Low</span></td>
+        </tr>
+        <tr>
+          <td><strong>Market cap context</strong></td>
+          <td>Dollar-blind: $1M buy always = ±0.3 or ±0.7</td>
+          <td>Trade size normalized by market cap</td>
+          <td>$1M in $300M company ≠ $1M in $3T company</td>
+          <td><span class="badge badge-low">Low</span></td>
+        </tr>
+        <tr>
+          <td><strong>Cluster detection</strong></td>
+          <td>Not tracked</td>
+          <td>Multi-insider confirmation scorer</td>
+          <td>Multi-confirmation is stronger signal</td>
+          <td><span class="badge badge-low">Low</span></td>
+        </tr>
+        <tr>
+          <td><strong>Weight tuning</strong></td>
+          <td>Hardcoded Python — requires developer</td>
+          <td>YAML — analyst can A/B test</td>
+          <td>Analyst autonomy; faster iteration</td>
+          <td><span class="badge badge-low">Low</span></td>
+        </tr>
+        <tr>
+          <td><strong>Extensibility</strong></td>
+          <td>Adding a signal = modifying aggregator code</td>
+          <td>@register_scorer = one new file</td>
+          <td>Zero-touch aggregator extension</td>
+          <td><span class="badge badge-low">Low</span></td>
+        </tr>
+        <tr>
+          <td><strong>Test coverage</strong></td>
+          <td>0 tests</td>
+          <td>31 tests passing</td>
+          <td>Verifiability, regression detection</td>
+          <td><span class="badge badge-low">Low</span></td>
+        </tr>
+        <tr>
+          <td><strong>is_company detection bug</strong></td>
+          <td>Broken XPath + name heuristic only — entity filers scored</td>
+          <td>XML &lt;isCompany&gt; tag primary; heuristic fallback</td>
+          <td>Correctness — institutional trades gated</td>
+          <td><span class="badge badge-high">Was High</span></td>
+        </tr>
+        <tr>
+          <td><strong>Architecture</strong></td>
+          <td>4 root-level scripts — flat</td>
+          <td>src/ layered: parsers → enrichment → scoring → pipeline</td>
+          <td>Maintainability, testability, separation of concerns</td>
+          <td><span class="badge badge-low">Low</span></td>
+        </tr>
+        <tr>
+          <td><strong>Git state</strong></td>
+          <td>All code tracked</td>
+          <td>src/, config/, tests/ were untracked — now committed</td>
+          <td>Version control coverage</td>
+          <td><span class="badge badge-critical">Was Critical</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="sub-title">Before vs After — Signal Comparison</h2>
+  <div class="ba-grid">
+    <div class="ba-before">
+      <div class="ba-label">Phase 1 Output</div>
+      <ul style="font-size:12px; margin:0 0 0 16px;">
+        <li>10 rows (one per ticker)</li>
+        <li>Signal: {−0.7, −0.3, 0, +0.3, +0.7}</li>
+        <li>10 megacap tickers only</li>
+        <li>Dissonance score 0–100</li>
+        <li>No 10b5-1 tracking</li>
+        <li>No ownership context</li>
+        <li>5 risk levels only</li>
+      </ul>
+    </div>
+    <div class="ba-after">
+      <div class="ba-label">Phase 2 Output</div>
+      <ul style="font-size:12px; margin:0 0 0 16px;">
+        <li>8,013 rows (per transaction)</li>
+        <li>Signal: [−0.488, +0.644] continuous</li>
+        <li>111 small/mid-cap tickers</li>
+        <li>conviction_signal float</li>
+        <li>1,533 10b5-1 trades flagged (19.1%)</li>
+        <li>pct_holdings_transacted per row</li>
+        <li>Market cap coverage: 100%</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="pg-footer">
+    <span>MIRROR — Architecture Report</span>
+    <span>Section 8 — Changes Analysis</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     9. CHANGE JUSTIFICATION
+═══════════════════════════════════════════════ -->
+<div class="page page-break" id="justify">
+  <div class="pg-header">
+    <span>MIRROR — Architecture &amp; Technical Change Report</span>
+    <span>June 2026</span>
+  </div>
+
+  <div class="section-num">SECTION 9</div>
+  <h1 class="section-title">Change Justification</h1>
+
+  <h2 class="sub-title">Problem Statement</h2>
+  <p>The Phase 1 insider signal was a 5-point threshold map on raw dollar amounts. This is mathematically sound in isolation but contextually blind — it produces the same signal value for a billionaire CEO selling 0.001% of their holdings as for a micro-cap director liquidating their entire position. The 5 discrete values also prevent proper ranking and backtest correlation analysis.</p>
+
+  <h2 class="sub-title">Why Change Was Needed</h2>
+  <div class="tbl-wrap">
+    <table class="std">
+      <thead><tr><th>Problem</th><th>Example</th><th>Impact</th></tr></thead>
+      <tbody>
+        <tr><td>Dollar-blind signal</td><td>$1M buy in $3T megacap = $1M buy in $200M small-cap</td><td>False signal equivalence</td></tr>
+        <tr><td>No ownership context</td><td>Insider selling 0.01% of holdings vs 80%</td><td>Cannot distinguish noise from conviction</td></tr>
+        <tr><td>No 10b5-1 penalty</td><td>Pre-planned program trades score the same as spontaneous buys</td><td>Inflated bullish signals</td></tr>
+        <tr><td>No role weighting</td><td>CEO and junior Director produce same signal</td><td>Information advantage ignored</td></tr>
+        <tr><td>No cluster detection</td><td>10 insiders buying same day = 1 insider buying</td><td>Multi-confirmation ignored</td></tr>
+        <tr><td>5 discrete values</td><td>All resolution lost between threshold bands</td><td>Cannot rank within a signal tier</td></tr>
+        <tr><td>Hardcoded thresholds</td><td>Changing $1M threshold requires Python edits</td><td>Analyst cannot tune without developer</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="sub-title">Implemented Change</h2>
+  <p>Replaced the 4-file root-level pipeline with a layered <code>src/</code> architecture: 3 enrichment modules (ownership %, market cap + ADV, 10b5-1 detection), a scorer registry pattern, and 7 registered scorers with YAML-configurable weights. The aggregator clamps output to [−1.0, +1.0].</p>
+
+  <h2 class="sub-title">Technical Impact</h2>
+  <ul>
+    <li>Signal resolution: from 5 discrete values to continuous float with 6 decimal places.</li>
+    <li>Transaction coverage: 10 ticker-level rows → 8,013 transaction-level rows.</li>
+    <li>10b5-1 detection: 1,533 pre-planned trades correctly penalized (19.1% of all transactions).</li>
+    <li>is_company bug fix: entity filers (institutional non-discretionary trades) now correctly gated to 0.0.</li>
+    <li>Test coverage: 0 tests → 31 tests passing in 1.44 s.</li>
+  </ul>
+
+  <h2 class="sub-title">Business / User Impact</h2>
+  <ul>
+    <li>Analysts can A/B test scoring configurations by editing YAML only — no code changes.</li>
+    <li>Top bullish signal: GO / Potter Jason (CEO, 99.2% of holdings, $1.69M) → +0.644.</li>
+    <li>Top bearish: CHEF / Pappas Christopher (CEO, 3.8% of holdings, $6.0M) → −0.488.</li>
+    <li>Mean signal −0.14 across 8,013 transactions reflects genuine bearish insider composition in the current small/mid-cap universe — the signal is not degenerate.</li>
+  </ul>
+
+  <h2 class="sub-title">Evidence</h2>
+  <div class="callout callout-success">
+    <div class="callout-title">Test Results — 31/31 Passed</div>
+    <code>pytest tests/ -v → 31 passed, 2 warnings in 1.44s</code><br><br>
+    Warnings: <code>technical_score</code> enabled in YAML but no scorer registered — intentional, documented.
+  </div>
+
+  <h2 class="sub-title">Trade-offs</h2>
+  <ul>
+    <li><strong>yfinance dependency:</strong> Market cap and ADV data is fetched live — staleness risk on stale runs. Mitigation: add run timestamp to output CSV.</li>
+    <li><strong>Flat CSV storage:</strong> Appropriate for research workflow; does not scale to real-time or multi-user access. SQLite planned for Phase 3.</li>
+    <li><strong>Phase 1 code preserved:</strong> <code>NEWS_SENTIMENT.PY</code> still at root level (active) alongside legacy/ copies — creates namespace ambiguity. Cleanup planned.</li>
+  </ul>
+
+  <h2 class="sub-title">Final Justification</h2>
+  <p>Phase 2 is a strict improvement across every measurable dimension: signal resolution, ticker coverage, correctness (is_company bug), analyst autonomy (YAML), verifiability (31 tests), and extensibility (registry pattern). The trade-offs are known, bounded, and documented. The change should be committed and treated as the production baseline for MIRROR going forward.</p>
+
+  <div class="pg-footer">
+    <span>MIRROR — Architecture Report</span>
+    <span>Section 9 — Change Justification</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     10. RISK MATRIX
+═══════════════════════════════════════════════ -->
+<div class="page page-break" id="risks">
+  <div class="pg-header">
+    <span>MIRROR — Architecture &amp; Technical Change Report</span>
+    <span>June 2026</span>
+  </div>
+
+  <div class="section-num">SECTION 10</div>
+  <h1 class="section-title">Risk and Mitigation Matrix</h1>
+
+  <div class="tbl-wrap">
+    <table class="std">
+      <thead>
+        <tr>
+          <th>Risk</th>
+          <th>Severity</th>
+          <th>Why It Matters</th>
+          <th>Mitigation</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Phase 2 src/, config/, tests/ not committed to git</strong></td>
+          <td><span class="badge badge-critical">Critical</span></td>
+          <td>All Phase 2 production code could be lost; no version history; collaboration impossible</td>
+          <td><code>git add src/ config/ tests/ docs/ legacy/</code> and commit immediately</td>
+        </tr>
+        <tr>
+          <td><strong>.env API key exposure</strong></td>
+          <td><span class="badge badge-high">High</span></td>
+          <td>NewsAPI and SEC API keys in .env; if accidentally committed, keys are public in git history permanently</td>
+          <td>.env confirmed gitignored; .env.example with placeholders present; rotate keys if repo was ever shared</td>
+        </tr>
+        <tr>
+          <td><strong>Root-level insider_parser.py — deprecated duplicate</strong></td>
+          <td><span class="badge badge-medium">Medium</span></td>
+          <td>Developer or CI script may import v1 parser instead of v2 parser, getting old broken behavior without error</td>
+          <td>Add deprecation warning to root file; schedule deletion in Phase 3 cleanup</td>
+        </tr>
+        <tr>
+          <td><strong>technical_score registered in YAML, unimplemented in code</strong></td>
+          <td><span class="badge badge-low">Low</span></td>
+          <td>Aggregator emits UserWarning at runtime; could confuse future developers</td>
+          <td>Documented in YAML comments; flagged as "disabled until backtested." Non-fatal by design.</td>
+        </tr>
+        <tr>
+          <td><strong>43 rows missing pct_holdings_transacted (0.5%)</strong></td>
+          <td><span class="badge badge-low">Low</span></td>
+          <td>Conviction scorer (dominant scorer, weight 0.30) returns 0.0 for these rows — underestimates signal</td>
+          <td>Graceful degradation confirmed in tests; 0.5% enrichment failure rate is acceptable</td>
+        </tr>
+        <tr>
+          <td><strong>1,332 rows missing title field (16.6%)</strong></td>
+          <td><span class="badge badge-low">Low</span></td>
+          <td>Role scorer cannot use title string; falls back to is_officer / is_director binary flags</td>
+          <td>Fallback confirmed in tests; Form 4 frequently omits title — this is expected behavior</td>
+        </tr>
+        <tr>
+          <td><strong>121 rows missing is_10b51_plan</strong></td>
+          <td><span class="badge badge-low">Low</span></td>
+          <td>tenb_penalty scorer skips None rows — no penalty applied where it could not be determined</td>
+          <td>Skip-on-None is safer than assuming True or False; acceptable for current data quality</td>
+        </tr>
+        <tr>
+          <td><strong>yfinance market data staleness</strong></td>
+          <td><span class="badge badge-medium">Medium</span></td>
+          <td>Market cap and ADV fetched at pipeline run time; re-running weeks later gives different normalization values for same historical transactions</td>
+          <td>Add <code>run_timestamp</code> column to output CSV; consider caching per ticker per date</td>
+        </tr>
+        <tr>
+          <td><strong>Missing documentation for Phase 2 pipeline entry point</strong></td>
+          <td><span class="badge badge-medium">Medium</span></td>
+          <td>New developer unclear whether to run root-level scripts or <code>src/pipeline/run_scoring_pipeline.py</code></td>
+          <td>Update README with clear quickstart; add DEPRECATED header to root-level legacy files</td>
+        </tr>
+        <tr>
+          <td><strong>NewsAPI free tier rate limits</strong></td>
+          <td><span class="badge badge-medium">Medium</span></td>
+          <td>Free tier limits article history to 1 month; Phase 1 news sentiment may be stale or incomplete for backtesting</td>
+          <td>Document limitation in architecture.md; consider caching NewsAPI responses</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-danger">
+    <div class="callout-title">Critical Action Required</div>
+    The single highest-risk item is the git state. All Phase 2 code (src/, config/, tests/) must be committed. If the local machine is lost before committing, the entire Phase 2 implementation is gone. Run: <br>
+    <code>git add src/ config/ tests/ docs/ legacy/ &amp;&amp; git commit -m "Phase 2: conviction engine"</code>
+  </div>
+
+  <div class="pg-footer">
+    <span>MIRROR — Architecture Report</span>
+    <span>Section 10 — Risk Matrix</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     11. TESTING STRATEGY
+═══════════════════════════════════════════════ -->
+<div class="page page-break" id="testing">
+  <div class="pg-header">
+    <span>MIRROR — Architecture &amp; Technical Change Report</span>
+    <span>June 2026</span>
+  </div>
+
+  <div class="section-num">SECTION 11</div>
+  <h1 class="section-title">Testing Strategy</h1>
+
+  <div class="callout callout-success">
+    <div class="callout-title">Current Test Status</div>
+    <strong>31 / 31 tests passing</strong> &nbsp;·&nbsp; 4 test modules &nbsp;·&nbsp; 1.44 seconds &nbsp;·&nbsp; 2 non-fatal warnings (technical_score YAML)
+  </div>
+
+  <div class="tbl-wrap">
+    <table class="std">
+      <thead>
+        <tr>
+          <th>Test Case</th>
+          <th>Area</th>
+          <th>What to Test</th>
+          <th>Expected Result</th>
+          <th>Priority</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Conviction scorer — NaN input</td>
+          <td>Unit</td>
+          <td>Pass NaN as pct_holdings_transacted</td>
+          <td>Returns 0.0 — no crash</td>
+          <td><span class="badge badge-critical">P0</span></td>
+        </tr>
+        <tr>
+          <td>Conviction scorer — None input</td>
+          <td>Unit</td>
+          <td>Pass None as pct_holdings_transacted</td>
+          <td>Returns 0.0 — no crash</td>
+          <td><span class="badge badge-critical">P0</span></td>
+        </tr>
+        <tr>
+          <td>Conviction scorer — clamp overflow</td>
+          <td>Unit</td>
+          <td>Pass pct_holdings > 1.0 (452% case)</td>
+          <td>Score clamped to 1.0</td>
+          <td><span class="badge badge-critical">P0</span></td>
+        </tr>
+        <tr>
+          <td>Conviction scorer — symmetry</td>
+          <td>Unit</td>
+          <td>BUY 50% holdings = SELL 50% holdings in magnitude</td>
+          <td>|buy_signal| = |sell_signal|</td>
+          <td><span class="badge badge-high">P1</span></td>
+        </tr>
+        <tr>
+          <td>Aggregator — registry wiring</td>
+          <td>Integration</td>
+          <td>All 7 scorers appear in SCORER_REGISTRY after import</td>
+          <td>len(SCORER_REGISTRY) == 7</td>
+          <td><span class="badge badge-critical">P0</span></td>
+        </tr>
+        <tr>
+          <td>Aggregator — output clamp</td>
+          <td>Integration</td>
+          <td>Construct row that would produce weighted_sum > 1.0</td>
+          <td>conviction_signal ≤ 1.0</td>
+          <td><span class="badge badge-critical">P0</span></td>
+        </tr>
+        <tr>
+          <td>Aggregator — per-scorer overflow guard</td>
+          <td>Integration</td>
+          <td>Individual scorer returns value > 1.0</td>
+          <td>Clamped before contributing to weighted_sum</td>
+          <td><span class="badge badge-high">P1</span></td>
+        </tr>
+        <tr>
+          <td>Cluster scorer — same-day discount</td>
+          <td>Unit</td>
+          <td>2 insiders same day vs 2 insiders different days</td>
+          <td>Different cluster_count, different score</td>
+          <td><span class="badge badge-high">P1</span></td>
+        </tr>
+        <tr>
+          <td>Cluster scorer — BUY vs SELL direction</td>
+          <td>Unit</td>
+          <td>Cluster of buyers vs cluster of sellers</td>
+          <td>Correct directional signal, not always bullish</td>
+          <td><span class="badge badge-high">P1</span></td>
+        </tr>
+        <tr>
+          <td>10b5-1 extraction — XML tag</td>
+          <td>Unit</td>
+          <td>Form 4 XML with &lt;aff10b5One&gt;1&lt;/aff10b5One&gt;</td>
+          <td>is_10b51_plan = True</td>
+          <td><span class="badge badge-critical">P0</span></td>
+        </tr>
+        <tr>
+          <td>10b5-1 extraction — footnote regex</td>
+          <td>Unit</td>
+          <td>Form 4 with "pursuant to a Rule 10b5-1" footnote</td>
+          <td>is_10b51_plan = True</td>
+          <td><span class="badge badge-critical">P0</span></td>
+        </tr>
+        <tr>
+          <td>10b5-1 — no flag present</td>
+          <td>Unit</td>
+          <td>Form 4 with no 10b5-1 indicators</td>
+          <td>is_10b51_plan = False</td>
+          <td><span class="badge badge-critical">P0</span></td>
+        </tr>
+        <tr>
+          <td>Entity filer gate — parser tagging</td>
+          <td>Unit</td>
+          <td>Form 4 with &lt;isCompany&gt;1&lt;/isCompany&gt;</td>
+          <td>is_company = True</td>
+          <td><span class="badge badge-critical">P0</span></td>
+        </tr>
+        <tr>
+          <td>Entity filer gate — aggregator block</td>
+          <td>Integration</td>
+          <td>Row with is_company = True passed to aggregator</td>
+          <td>conviction_signal = 0.0, not scored</td>
+          <td><span class="badge badge-critical">P0</span></td>
+        </tr>
+        <tr>
+          <td>Enrichment — arithmetic fallback</td>
+          <td>Unit</td>
+          <td>Row with shares_after only (no shares_before)</td>
+          <td>pct_holdings_transacted computed via fallback strategy</td>
+          <td><span class="badge badge-high">P1</span></td>
+        </tr>
+        <tr>
+          <td>Enrichment — forward-carry</td>
+          <td>Unit</td>
+          <td>Consecutive rows with same insider, missing shares_before</td>
+          <td>Previous row's shares_after carried forward</td>
+          <td><span class="badge badge-high">P1</span></td>
+        </tr>
+        <tr>
+          <td>YAML config — missing scorer</td>
+          <td>Config</td>
+          <td>Remove a scorer from YAML; run aggregator</td>
+          <td>UserWarning emitted, scorer skipped — no crash</td>
+          <td><span class="badge badge-medium">P2</span></td>
+        </tr>
+        <tr>
+          <td>CSV output validation</td>
+          <td>Pipeline</td>
+          <td>Run full Phase 2 pipeline end-to-end</td>
+          <td>insider_signals_phase2.csv: 8,013 rows, no NaN in conviction_signal, all values in [−1.0, +1.0]</td>
+          <td><span class="badge badge-critical">P0</span></td>
+        </tr>
+        <tr>
+          <td>Phase 1 pipeline re-run</td>
+          <td>Pipeline</td>
+          <td>Run legacy/run_mirror.py end-to-end</td>
+          <td>dissonance_scores.csv regenerated; 10 rows; scores 0–100</td>
+          <td><span class="badge badge-medium">P2</span></td>
+        </tr>
+        <tr>
+          <td>Before/after signal comparison</td>
+          <td>Regression</td>
+          <td>Compare Phase 1 vs Phase 2 signal for same tickers</td>
+          <td>Phase 2 signals more granular; same directional bias</td>
+          <td><span class="badge badge-medium">P2</span></td>
+        </tr>
+        <tr>
+          <td>10b5-1 penalty effect</td>
+          <td>Data Quality</td>
+          <td>Filter is_10b51_plan=True vs False, compare mean signal magnitude</td>
+          <td>True rows have lower |conviction_signal|</td>
+          <td><span class="badge badge-high">P1</span></td>
+        </tr>
+        <tr>
+          <td>Entity filer in production data</td>
+          <td>Data Quality</td>
+          <td>Filter known ETF/fund tickers in output CSV</td>
+          <td>Signal = 0.0 or not present</td>
+          <td><span class="badge badge-high">P1</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pg-footer">
+    <span>MIRROR — Architecture Report</span>
+    <span>Section 11 — Testing Strategy</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     12. NEXT STEPS
+═══════════════════════════════════════════════ -->
+<div class="page page-break" id="nextsteps">
+  <div class="pg-header">
+    <span>MIRROR — Architecture &amp; Technical Change Report</span>
+    <span>June 2026</span>
+  </div>
+
+  <div class="section-num">SECTION 12</div>
+  <h1 class="section-title">Recommended Next Steps</h1>
+
+  <div class="tbl-wrap">
+    <table class="std">
+      <thead><tr><th>#</th><th>Action</th><th>Command / Detail</th><th>Priority</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td><strong>Commit Phase 2 to git</strong></td>
+          <td><code>git add src/ config/ tests/ docs/ legacy/ &amp;&amp; git commit -m "Phase 2: conviction engine"</code></td>
+          <td><span class="badge badge-critical">Critical</span></td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td><strong>Verify .env is gitignored</strong></td>
+          <td><code>cat .gitignore | grep .env</code> — confirm .env and *.env are listed</td>
+          <td><span class="badge badge-critical">Critical</span></td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td><strong>Run full pytest suite</strong></td>
+          <td><code>pytest tests/ -v</code> — confirm 31/31 passing</td>
+          <td><span class="badge badge-high">High</span></td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td><strong>Run Phase 2 pipeline end-to-end</strong></td>
+          <td><code>python src/pipeline/run_scoring_pipeline.py</code></td>
+          <td><span class="badge badge-high">High</span></td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td><strong>Validate output CSV</strong></td>
+          <td>Check: 8,013 rows, all conviction_signal in [−1.0, +1.0], no NaN</td>
+          <td><span class="badge badge-high">High</span></td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td><strong>Add deprecated header to root insider_parser.py</strong></td>
+          <td>Add <code># DEPRECATED: use src/parsers/insider_parser_v2.py</code> at top of file</td>
+          <td><span class="badge badge-medium">Medium</span></td>
+        </tr>
+        <tr>
+          <td>7</td>
+          <td><strong>Update README quickstart</strong></td>
+          <td>Point to <code>src/pipeline/run_scoring_pipeline.py</code> as Phase 2 entry point</td>
+          <td><span class="badge badge-medium">Medium</span></td>
+        </tr>
+        <tr>
+          <td>8</td>
+          <td><strong>Run 10b5-1 penalty validation</strong></td>
+          <td>Filter output CSV for <code>is_10b51_plan=True</code>; confirm lower mean |signal|</td>
+          <td><span class="badge badge-medium">Medium</span></td>
+        </tr>
+        <tr>
+          <td>9</td>
+          <td><strong>Add run_timestamp to output CSV</strong></td>
+          <td>Prevents yfinance market data staleness ambiguity across multiple runs</td>
+          <td><span class="badge badge-medium">Medium</span></td>
+        </tr>
+        <tr>
+          <td>10</td>
+          <td><strong>Implement technical_score scorer</strong></td>
+          <td>Price structure signal (close &gt; 200DMA, 5–20% below 52w high). Enabled in YAML pending backtest.</td>
+          <td><span class="badge badge-low">Low</span></td>
+        </tr>
+        <tr>
+          <td>11</td>
+          <td><strong>Phase 3 — SQLite migration</strong></td>
+          <td>Replace flat CSV with SQLite for multi-run history, faster queries, multi-user access</td>
+          <td><span class="badge badge-low">Low</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       13. INTERVIEW EXPLANATION
+  ═══════════════════════════════════════════════ -->
+  <div class="section-num" style="margin-top:28px;" id="interview">SECTION 13</div>
+  <h1 class="section-title">Interview Explanation</h1>
+  <p style="margin-bottom:12px; font-size:12.5px; color: var(--gray-700);">
+    The following is a 60–90 second spoken explanation suitable for a technical interview or mentor review session.
+  </p>
+
+  <div class="interview-block">
+    <strong>"When I built MIRROR, the original insider signal had a fundamental limitation:"</strong>
+    it mapped every trade to just five values based on raw dollar amounts — ±0.7, ±0.3, or zero. That means a CEO selling 80% of their entire stake got the same signal as someone selling a tiny fraction. There was no context.
+
+    <br><br>
+
+    <strong>So in Phase 2, I rebuilt the scoring layer from scratch.</strong> I added three enrichment stages: one that computes what percentage of the insider's holdings they traded, one that fetches market cap and trading volume from Yahoo Finance to normalize the trade size, and one that detects whether the trade was a pre-planned 10b5-1 program — which carries zero predictive value and should be penalized.
+
+    <br><br>
+
+    I then implemented a scorer registry pattern — each scorer is a decorated function that self-registers at import time. The aggregator pulls from that registry and applies weights from a YAML config file, so analysts can tune the model without touching Python. The output is a continuous conviction signal clamped to [−1.0, +1.0] instead of five discrete values.
+
+    <br><br>
+
+    <strong>The result:</strong> 8,013 transaction-level signals across 111 small/mid-cap tickers, with 1,533 10b5-1 trades correctly penalized and 31 tests confirming correctness. I also found and fixed a bug in the entity filer detection — the original code used a broken XPath and name heuristics when the XML tag was sitting right there. That fix prevents institutional non-discretionary trades from polluting the conviction signals.
+
+    <br><br>
+
+    <strong>The architecture is now layered, testable, and extensible.</strong> Adding a new scorer means creating one file with a decorator — nothing else changes.
+  </div>
+
+  <div class="pg-footer">
+    <span>MIRROR — Architecture Report</span>
+    <span>Sections 12–13</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     14. APPENDIX
+═══════════════════════════════════════════════ -->
+<div class="page page-break" id="appendix">
+  <div class="pg-header">
+    <span>MIRROR — Architecture &amp; Technical Change Report</span>
+    <span>June 2026</span>
+  </div>
+
+  <div class="section-num">SECTION 14</div>
+  <h1 class="section-title">Appendix</h1>
+
+  <h2 class="sub-title">A. Key Output Files</h2>
+  <div class="tbl-wrap">
+    <table class="std">
+      <thead><tr><th>File</th><th>Rows</th><th>Key Columns</th><th>Pipeline</th><th>Git</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>results/insider_signals_phase2.csv</code></td>
+          <td>8,013</td>
+          <td>ticker, insider_name, title, transaction_date, dollar_value, pct_holdings_transacted, market_cap, is_10b51_plan, conviction_signal</td>
+          <td>Phase 2</td>
+          <td>gitignored</td>
+        </tr>
+        <tr>
+          <td><code>results/dissonance_scores.csv</code></td>
+          <td>10</td>
+          <td>ticker, insider_signal, media_signal, options_signal, dissonance_score, risk_level</td>
+          <td>Phase 1</td>
+          <td>gitignored</td>
+        </tr>
+        <tr>
+          <td><code>data/insider_transactions.csv</code></td>
+          <td>8,013</td>
+          <td>Parsed Form 4 fields — shared input for both pipelines</td>
+          <td>Both</td>
+          <td>gitignored</td>
+        </tr>
+        <tr>
+          <td><code>data/insider_filings.csv</code></td>
+          <td>Needs verification</td>
+          <td>Filing index from SEC EDGAR for 146-ticker universe</td>
+          <td>Phase 2</td>
+          <td>gitignored</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="sub-title">B. Key Configuration Files</h2>
+  <div class="tbl-wrap">
+    <table class="std">
+      <thead><tr><th>File</th><th>Purpose</th><th>Format</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>config/scoring.yaml</code></td>
+          <td>Scorer weights and enable/disable flags — single source of truth</td>
+          <td>YAML</td>
+        </tr>
+        <tr>
+          <td><code>config/universe_smallmid.txt</code></td>
+          <td>146-ticker curated small/mid-cap universe for Phase 2 data pull</td>
+          <td>Plain text, one ticker per line</td>
+        </tr>
+        <tr>
+          <td><code>.env</code></td>
+          <td>API keys: NEWS_API_KEY (NewsAPI), SEC_API_KEY (if required)</td>
+          <td>KEY=VALUE, gitignored</td>
+        </tr>
+        <tr>
+          <td><code>requirements.txt</code></td>
+          <td>Python dependencies: numpy, pandas, requests, textblob, yfinance, PyYAML, pytest</td>
+          <td>pip format</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="sub-title">C. Glossary</h2>
+  <div class="tbl-wrap">
+    <table class="std">
+      <thead><tr><th>Term</th><th>Definition</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Form 4</strong></td><td>SEC regulatory filing required within 2 business days of any insider transaction. Contains insider name, role, number of shares, price, buy/sell direction, and 10b5-1 plan flag.</td></tr>
+        <tr><td><strong>10b5-1 plan</strong></td><td>A pre-arranged trading plan that allows corporate insiders to trade on a fixed schedule, regardless of material non-public information. Carries zero informational content for conviction scoring.</td></tr>
+        <tr><td><strong>Conviction signal</strong></td><td>MIRROR's Phase 2 output — a float in [−1.0, +1.0] representing the strength and direction of an insider's informational signal. Positive = bullish; negative = bearish.</td></tr>
+        <tr><td><strong>Dissonance score</strong></td><td>MIRROR's Phase 1 output — a float 0–100 measuring contradiction between insider activity, news sentiment, and options positioning.</td></tr>
+        <tr><td><strong>ADV</strong></td><td>Average Daily Volume (dollar-denominated). Used to normalize trade size by liquidity.</td></tr>
+        <tr><td><strong>Entity filer</strong></td><td>An institutional filer (index fund, ESPP trust, custodian) that files Form 4 but makes non-discretionary trades. MIRROR hard-gates these to conviction_signal = 0.0.</td></tr>
+        <tr><td><strong>Registry pattern</strong></td><td>A design pattern where components self-register at import time via a decorator. MIRROR's @register_scorer decorator adds each scorer function to SCORER_REGISTRY when its module is imported.</td></tr>
+        <tr><td><strong>pct_holdings_transacted</strong></td><td>The percentage of an insider's total holdings in a company that were traded in a single transaction. The dominant conviction signal feature (weight: 0.30).</td></tr>
+        <tr><td><strong>CIK</strong></td><td>Central Index Key — SEC's unique identifier for each company and individual filer. Required to query Form 4 filings from EDGAR.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="sub-title">D. Scoring YAML — Annotated</h2>
+  <pre>conviction_score:
+  weight: 0.30     # Dominant scorer — % of holdings transacted
+  enabled: true
+
+role_score:
+  weight: 0.20     # CEO=1.0, CFO=0.90, Director=0.55
+  enabled: true
+
+market_cap_score:
+  weight: 0.15     # Trade size / market cap
+  enabled: true
+
+cluster_score:
+  weight: 0.15     # Multi-insider confirmation
+  enabled: true
+
+liquidity_score:
+  weight: 0.10     # Trade size / 30d ADV
+  enabled: true
+
+technical_score:
+  weight: 0.10     # Price structure — DISABLED until backtested
+  enabled: false
+
+routine_penalty:
+  weight: -0.20    # Calendar seasonality — zero predictive power
+  enabled: true
+
+tenb_penalty:
+  weight: -0.25    # Pre-planned 10b5-1 trades — zero information
+  enabled: true
+
+# Net positive weight capacity: 0.90
+# Net penalty capacity:        -0.45
+# Effective range after clamp: [-1.0, +1.0]</pre>
+
+  <h2 class="sub-title">E. is_company Bug — Code Before and After</h2>
+  <div class="ba-grid">
+    <div class="ba-before">
+      <div class="ba-label">Before (Broken)</div>
+      <pre style="font-size:10px; margin:0; padding:10px;">owner_name = (root.findtext(
+  './/reportingOwner/'
+  'reportingOwnerId/'   # ← node doesn't exist in EDGAR XML
+  'rptOwnerName') or '').upper()
+name_words = set(...)
+flags['is_company'] = bool(
+  name_words &amp; _ENTITY_KEYWORDS)
+# Entity filers were being scored
+# instead of gated to 0.0</pre>
+    </div>
+    <div class="ba-after">
+      <div class="ba-label">After (Fixed)</div>
+      <pre style="font-size:10px; margin:0; padding:10px;">is_co = root.find(
+  './/reportingOwner/'
+  'reportingOwnerType/isCompany')
+if is_co is not None and is_co.text:
+    flags['is_company'] = (
+      is_co.text.strip()
+      in ('1', 'true', 'yes'))
+else:
+    # Fallback: name heuristics
+    # for pre-2023 filings
+    ...</pre>
+    </div>
+  </div>
+
+  <div class="callout callout-info" style="margin-top:24px;">
+    <div class="callout-title">PDF Export Instructions</div>
+    Open this file in <strong>Google Chrome</strong> or <strong>Microsoft Edge</strong>.<br>
+    Press <strong>Ctrl+P</strong> (Windows) or <strong>Cmd+P</strong> (Mac).<br>
+    Select <strong>"Save as PDF"</strong> as the destination.<br>
+    Under "More settings", enable <strong>"Background graphics"</strong>.<br>
+    Set margins to <strong>None</strong> for best results. Click Save.
+  </div>
+
+  <div class="pg-footer">
+    <span>MIRROR — Architecture Report</span>
+    <span>Section 14 — Appendix | End of Document</span>
+  </div>
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'neutral',
+    themeVariables: {
+      primaryColor: '#e3f2fd',
+      primaryTextColor: '#0d1b2a',
+      primaryBorderColor: '#1565c0',
+      lineColor: '#4a5568',
+      secondaryColor: '#f4f6f9',
+      tertiaryColor: '#fff',
+      fontSize: '13px'
+    },
+    flowchart: { curve: 'basis', padding: 16 },
+    sequence: { actorMargin: 50, messageMargin: 30 }
+  });
+</script>
+</body>
+</html>

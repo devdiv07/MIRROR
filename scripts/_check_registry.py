@@ -16,3 +16,4 @@ assert SCORER_REGISTRY['routine_penalty']['enabled'], "routine_penalty still dis
 assert SCORER_REGISTRY['tenb_penalty']['enabled'],   "tenb_penalty still disabled!"
 print()
 print("PASS: routine_penalty and tenb_penalty are now enabled.")
+#this script is use for only temporary audit and debugging purposes, not for production use
