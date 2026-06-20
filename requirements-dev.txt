@@ -1,0 +1,6 @@
+# Dev and CI tooling — not required to run the pipeline
+# Install with: pip install -r requirements.txt -r requirements-dev.txt
+-r requirements.txt
+
+pip-audit>=2.7.0    # dependency vulnerability scanning
+pyflakes>=3.2.0     # fast lint (used in CI before mypy)

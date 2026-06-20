@@ -21,7 +21,7 @@ Usage:
 import os
 import time
 import requests
-import xml.etree.ElementTree as ET
+import defusedxml.ElementTree as ET
 import pandas as pd
 from datetime import datetime
 

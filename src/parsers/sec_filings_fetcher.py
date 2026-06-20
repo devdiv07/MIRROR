@@ -46,7 +46,7 @@ def get_company_filings(ticker, cik):
     """
     url = f"https://data.sec.gov/submissions/CIK{cik}.json"
     try:
-        response = requests.get(url, headers=HEADER)
+        response = requests.get(url, headers=HEADER, timeout=30)
         # If SEC blocks us, stop and show error
         if response.status_code != 200:
             print(f"ERROR: SEC returned {response.status_code} for {ticker}")

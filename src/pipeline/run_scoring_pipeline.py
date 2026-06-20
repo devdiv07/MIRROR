@@ -47,7 +47,7 @@ def main():
 
     # Load config and score
     print("\n[6/6] Scoring transactions...")
-    config = load_config('insider_signal_phase1/config/scoring.yaml')
+    config = load_config('config/scoring.yaml')
     print(f"  Loaded {len(config)} scorers from config")
     enabled = [s for s, c in config.items() if c['enabled']]
     print(f"  Enabled scorers: {', '.join(enabled)}")

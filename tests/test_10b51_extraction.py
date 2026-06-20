@@ -1,3 +1,6 @@
+# what this file is: tests for Fix 4 (aff10b5One and footnote extraction) in insider_parser_v2
+#which is part of the insider_signal_phase1 project. Run from insider_signal_phase1/ directory.
+# the main work this test file does is to verify that the parser correctly extracts the <aff10b5One> tag and footnotes from Form 4 XML, and that the enrichment step correctly interprets these fields to determine if a trade is part of a 10b5-1 plan.
 """
 Tests for Fix 4: aff10b5One and footnote extraction in insider_parser_v2.
 Run from insider_signal_phase1/ directory.

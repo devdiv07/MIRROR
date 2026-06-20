@@ -1,5 +1,13 @@
-numpy
-pandas
-requests
-textblob
-yfinance
+# Core pipeline dependencies — versions pinned to dev environment (Python 3.13)
+numpy==2.4.5
+pandas==3.0.3
+requests==2.34.2
+textblob==0.20.0
+yfinance==1.3.0
+PyYAML==6.0.3
+
+# Security: safe XML parsing — replaces xml.etree in insider_parser_v2.py
+defusedxml>=0.7.1
+
+# Testing
+pytest==9.1.0

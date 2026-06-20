@@ -88,7 +88,6 @@ def test_null_pct_returns_zero():
 
 def test_nan_pct_returns_zero():
     """pandas NaN in pct (from missing ownership data) must return 0.0, not +-0.6."""
-    import math
     row = {
         'transaction_type': 'SELL',
         'pct_holdings_transacted': float('nan'),
@@ -257,8 +256,8 @@ def test_aggregator_clamps_individual_scorer_output():
     from src.scoring.registry import register_scorer, SCORER_REGISTRY
 
     @register_scorer('test_blowup_score', default_weight=0.0)
-    def blowup_scorer(row):
-        return 5.0  # way out of range
+    def blowup_scorer(_row):
+        return 5.0  # way out of range; unused arg is intentional
 
     try:
         SCORER_REGISTRY['test_blowup_score']['weight'] = 0.5
