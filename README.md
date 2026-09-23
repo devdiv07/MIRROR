@@ -12,7 +12,8 @@
 | Legacy dissonance prototype | `legacy/` | News sentiment + options/price signals + a dissonance score over 10 hard-coded US mega-caps | Prototype. It does **not** use the `src/` insider scores, and `legacy/run_mirror.py` calls `SEC_INSIDER.PY`, which is not in the repository. Its dependencies are in `requirements-legacy.txt` (textblob → nltk, which has an open advisory: PYSEC-2026-3740). |
 | Store, identity and calendar | `src/store/`, `src/core/`, `config/exchanges.yaml`, `config/holidays/` | SQLite schema (ADR §6), stable security keys with symbol history, watchlist loading, and NSE/NYSE/Nasdaq sessions and holidays with cited sources | **Built (Milestone 1), tested offline** |
 | Events and coverage | `src/sources/`, `src/core/coverage.py`, `src/cli.py` | SEC EDGAR filings (automatic) and NSE disclosures (manual entry), versioned with as-of reads; per-stock coverage states; `ingest` / `checked` / `events` commands | **Built (Milestone 2), tested offline on fixtures** (tests never use the network). Checked once against live SEC data for AAPL: [run note](docs/runs/2026-09-23-sec-live-check.md) |
-| Watchlist research product | — | Adjusted moves, evidence-labelled explanations, daily brief | **Planned** ([FOCUS.md](docs/FOCUS.md) steps 4–5) |
+| Prices and moves | `src/sources/prices_csv.py`, `src/sources/corporate_actions.py`, `src/compute/moves.py` | Price CSV import with file-hash provenance, owner-entered corporate actions, adjusted daily moves with a calculation trace and the stated upstream source ("unknown" when not declared); `moves` command | **Built (Milestone 3), tested offline on synthetic files** |
+| Watchlist research product | — | Timing tags, evidence-labelled explanations, daily brief | **Planned** ([FOCUS.md](docs/FOCUS.md) step 5) |
 
 The earlier 5-layer vision and the insider-IC roadmap remain available as dated research direction. See [docs/INDEX.md](docs/INDEX.md).
 
@@ -27,7 +28,7 @@ pip install -r requirements-dev.txt     # includes requirements.txt
 python -m pytest tests/ -v
 ```
 
-Last observed local result: **159 passed, 2 warnings** (2026-09-24, Windows 11, Python 3.13.5): 31 insider-research tests and 128 for the watchlist foundation. CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs `pyflakes src/ tests/`, then pytest, then `pip-audit --strict`. All three passed on `d3898bc` with 77 tests ([run 35860281919](https://github.com/devdiv07/MIRROR/actions/runs/35860281919)). CI had been red at the pyflakes step from `e068c91` until `63cf01e`. `legacy/` needs `pip install -r requirements-legacy.txt`, which is not audited in CI; see the note in that file.
+Last observed local result: **224 passed, 2 warnings** (2026-09-24, Windows 11, Python 3.13.5): 31 insider-research tests and 193 for the watchlist product. CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs `pyflakes src/ tests/`, then pytest, then `pip-audit --strict`. All three passed on `d3898bc` with 77 tests ([run 35860281919](https://github.com/devdiv07/MIRROR/actions/runs/35860281919)). CI had been red at the pyflakes step from `e068c91` until `63cf01e`. `legacy/` needs `pip install -r requirements-legacy.txt`, which is not audited in CI; see the note in that file.
 
 ## Using the watchlist tools (Milestone 2)
 
@@ -37,11 +38,14 @@ export SEC_USER_AGENT="Your Name your.email@example.com"   # required: SEC asks 
 python -m src.cli ingest                                   # load watchlist, fetch SEC, import data/manual_events.csv
 python -m src.cli checked NSE <SYMBOL> --from 2026-09-22T09:00 --through 2026-09-23T08:00   # after reviewing NSE
 python -m src.cli events --since 2026-09-22T00:00 --as-of 2026-09-23T08:00
+python -m src.cli moves --date 2026-09-22                  # adjusted moves, with trace and price source
 ```
 
 Times without an offset are read as India time. `events` shows, for each stock and required source, one of five coverage states (checked with events, checked with none, not checked, source failed, coverage incomplete) and the disclosures visible at `--as-of`. NSE disclosures are entered by hand in `data/manual_events.csv` (columns `security_key,url,subject,published_at,event_type`), because NSE's terms do not permit automated collection (ADR §4.3). Entering an event does not mark the stock as checked. The database is `data/mirror.sqlite3` (git-ignored).
 
 `ingest` refuses to contact SEC unless `SEC_USER_AGENT` is set with a contact email. MIRROR has no built-in contact. It sends at most 2 SEC requests per second (SEC's limit is 10). A period that SEC did not fully serve, such as an older filings file that failed or returned bad JSON, stays "coverage incomplete", and every later `ingest` retries it until it is fetched.
+
+Prices come from your own files in `data/prices/` (git-ignored), in the format described in [src/sources/prices_csv.py](src/sources/prices_csv.py): `security_key,trade_date,open,high,low,close,volume,adj_close`, raw closes, with optional `# vendor:`, `# source_url:` and `# as_of:` lines at the top. Without them the source is shown as **unknown**. Splits, bonuses and dividends go in `data/corporate_actions.csv` (format in [src/sources/corporate_actions.py](src/sources/corporate_actions.py)), each with a link to its notice. A move of 30% or more that looks like an unrecorded split is held as "check corporate actions", not shown as a move.
 
 ## Running the insider research pipeline (optional, research only)
 

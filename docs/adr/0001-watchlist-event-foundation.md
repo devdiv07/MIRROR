@@ -482,6 +482,15 @@ Work directly on `main` in small commits, checking CI after each milestone. Keep
 - *Files:* `src/sources/prices_csv.py` (writes `price_import` with a file hash), `src/sources/corporate_actions.py`, `src/compute/moves.py`, `tests/fixtures/prices/*.csv`, `tests/test_moves.py`, `tests/test_price_provenance.py`.
 - *Cases:* **A3**, **A5**, **P1**, **P2**, and the unrecorded-action guard.
 - *Pass:* every computed number is recomputed in tests from stored rows, and every result carries its `import_id` and `calc_version`.
+- *As built (2026-09-24; `04b1f91`, `13e2a7a`, `3722100`):* the files above, plus `tests/test_moves.py`, `tests/test_price_provenance.py` and a `moves` CLI command. Beyond the text of §5.1 and §7:
+  - *Price file format.* MIRROR's own columns (`security_key,trade_date,open,high,low,close,volume,adj_close`). Declarations are `# vendor:`, `# source_url:` and `# as_of:` lines **inside** the file, so `file_sha256` covers them. A file is imported whole or not at all. A bar for a closed day, an unconfigured year or a session that had not closed at import time is rejected.
+  - *Provenance failure (P2).* A bar whose `import_id` resolves to no `price_import` wins its day in `db.price_bars_as_of`, because its import time is unknown. A move that needs it has status `missing_provenance` and renders only "price data missing provenance".
+  - *Move statuses:* `computed`, `held`, `stale`, `no_previous_close`, `no_trade` (zero volume), `missing_provenance`, `market_closed`, `calendar_not_covered`. Only `computed` carries a move. A computation before the session closed as of `T` is an error.
+  - *Guard:* also checks the reciprocal ratios, so an unrecorded reverse split (a move up) is held too. `adjustment_mismatch` compares returns: `|r_D − vendor r_D| > 0.5` percentage points.
+  - *Volume ratio:* over the prior 20 **calendar** sessions that have a bar with provenance and a volume; a missing bar is skipped, not filled. It stops at an unconfigured calendar year.
+  - *`calc_version`* is `moves/1+<8 hex of sha256(PARAMS)>`, not `git describe`. It changes with the formula or a parameter, not with unrelated commits.
+  - *Corporate actions* are linked to their notice (`source_document`, source `MANUAL_CA`), must go ex on a session, and count from `first_seen_at`. A recorded action is never rewritten: a changed row is refused, because moves computed from it must stay reproducible. Corrections need a separate, deliberate design.
+  - *Deferred to Milestone 4:* the benchmark-relative move (cases A4 and R2 need it).
 
 **Milestone 4 — Timing, evidence labels, brief, feedback.**
 - *Files:* `src/compute/timing.py`, `src/explain/evidence.py`, `src/brief/render_markdown.py`, the `compute`, `brief`, `feedback` and `thesis` CLI commands, `tests/test_timing.py`, `tests/test_evidence.py`, `tests/test_brief_render.py`.
