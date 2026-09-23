@@ -10,7 +10,7 @@ _Last set: 2026-09-23. It replaces the June 21, 2026 focus ("get one real IC num
 > The owner reads **one next-morning Markdown brief** for a **real 10–20 stock India/US watchlist**. It shows:
 > - **filing claims**, each with a source link and a publication time;
 > - **price numbers**, each with its import, file hash and calculation trace;
-> - a **coverage state** for every stock and source: checked with no events, not checked, source failed, or coverage incomplete;
+> - a **coverage state** for every stock and source: checked with events found, checked with no events, not checked, source failed, or coverage incomplete;
 > - for any stock that crossed its move trigger, an **adjusted daily move** and an **evidence-labelled explanation**.
 
 Why this outcome: [PRODUCT.md](PRODUCT.md). How it is built: [adr/0001-watchlist-event-foundation.md](adr/0001-watchlist-event-foundation.md).
@@ -28,7 +28,7 @@ Work directly on `main` in small commits. Check CI and the named ADR cases after
 ### Step 0 — make CI green _(done 2026-09-23)_
 - [x] Fix the 44 existing pyflakes findings without changing behaviour. Keep the scorer-registration imports (list them in `__all__`; pyflakes ignores `# noqa`). Do not remove or skip the lint step.
 - **Done when:** CI on `main` is green **and** its pytest and pip-audit steps actually ran, with their results recorded here.
-- **Result:** lint fixes in `589eaed`. The first `pip-audit --strict` run then failed on PYSEC-2026-3740 in `nltk` (via `textblob`; no fixed release). `0f95961` moved `textblob` to `requirements-legacy.txt` (ADR §13, Milestone 0). CI on `63cf01e` ([run 35858038008](https://github.com/devdiv07/MIRROR/actions/runs/35858038008)): pyflakes clean · pytest **31 passed** · pip-audit **"No known vulnerabilities found"**. Open item: GitHub has disabled the weekly *Security Scan* workflow for inactivity; it needs re-enabling in the repo's Actions settings.
+- **Result:** lint fixes in `589eaed`. The first `pip-audit --strict` run then failed on PYSEC-2026-3740 in `nltk` (via `textblob`; no fixed release). `0f95961` moved `textblob` to `requirements-legacy.txt` (ADR §13, Milestone 0). CI on `63cf01e` ([run 35858038008](https://github.com/devdiv07/MIRROR/actions/runs/35858038008)): pyflakes clean · pytest **31 passed** · pip-audit **"No known vulnerabilities found"**. The weekly *Security Scan* workflow, which GitHub had disabled for inactivity, was re-enabled on 2026-09-23; its manual run [35859075728](https://github.com/devdiv07/MIRROR/actions/runs/35859075728) on `adcd9f2` passed both jobs (pip-audit clean; gitleaks: no leaks).
 
 ### Step 1 — put the architecture baseline on `main` _(done 2026-09-23)_
 - [x] Commit PRODUCT.md, this focus file, INDEX.md, the ADR and README directly to `main`; close the superseded draft PR.
@@ -42,7 +42,7 @@ Work directly on `main` in small commits. Check CI and the named ADR cases after
 
 ### Step 3 — events: event foundation and coverage _(ACTIVE)_
 - [ ] SEC submissions adapter (keeps `acceptanceDateTime`; fixture-tested, no network), manual NSE events, the `checked` CLI command, the coverage states, and a plain-text `events` listing
-- **Done when:** ADR cases **C1** (not checked) and **C2** (checked, no events) pass, along with C3–C5, **R1** (as-of guard), A6 (failure state), and the duplicate and versioning tests.
+- **Done when:** ADR cases **C1** (not checked) and **C2** (checked, no events) pass, along with C3–C7 (incl. checked-with-events and a shared-CIK/two-listing fixture), **V1** (event revision read at two times), **B1** (backfill only `ok` when every needed SEC file was fetched), **R1** (as-of guard), A6 (failure state), and the duplicate-ingest tests.
 
 ### Step 4 — prices: prices, corporate actions, moves
 - [ ] Price CSV import with `price_import` provenance, corporate actions, `src/compute/moves.py`

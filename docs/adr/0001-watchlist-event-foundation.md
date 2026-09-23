@@ -43,7 +43,7 @@ None of the existing code produces the product. The insider code is an experimen
 4. **All numbers are deterministic.** An LLM, if added later, may only phrase text around numbers that were already computed. It never produces a price, return or financial figure.
 5. **Sources are chosen by confirmed permission, not by availability.** US disclosures come automatically from SEC EDGAR, which documents free reuse. India disclosures start as **manual entry**. NSE's website terms prohibit systematic automated collection. Whether NSE's RSS feeds or a paid NSE data subscription permit MIRROR's use is **unresolved, not impossible**. A time-bounded source investigation (§4.3) must settle it before any India time-saving pilot. Prices come in through a **file import that records provenance** (§5.1) until a price source with confirmed permission is chosen.
 6. **Explanations are labelled, never probabilistic.** There are five evidence labels (§8). "No verified explanation yet" is used **only** when coverage was complete. Otherwise the card says coverage was incomplete. No causal percentages.
-7. **Coverage is explicit.** For each security, source and window, the brief shows one of four states: *checked, no events* · *not checked* · *source failed* · *coverage incomplete* (§4.4). Silence never means "nothing happened".
+7. **Coverage is explicit.** For each security, source and window, the brief shows one of five states: *checked, events found* · *checked, no events* · *not checked* · *source failed* · *coverage incomplete* (§4.4). Silence never means "nothing happened".
 
 ## 3. Module layout and data flow
 
@@ -99,12 +99,21 @@ None of the existing code produces the product. The insider code is an experimen
 
 ### 4.2 Ingestion rules (all adapters)
 
-- **Idempotency.** Each adapter maps a record to a natural key: SEC accession number; manual event `(security, source_url, published_at)`; price import `file_sha256`, then price row `(security, trade_date, import_id)`; coverage check `(security, source, window, checked_at)`. Re-ingesting the same content is a no-op. `source_document` is unique on `(source, source_doc_key, content_sha256)`.
-- **Versioning, not overwrite.** If the content hash changes for the same key (amended filing, revised bar), MIRROR inserts a **new version** and keeps the old one. Reads choose the newest version with `first_seen_at ≤ as_of`.
-- **Deduplication.** `event.dedup_key = sha256(security_id | event_type | source | source_doc_key)`. An 8-K and its exhibit are one event. The same NSE announcement entered twice is one event.
+- **Idempotency.** Each adapter maps a record to a natural key: SEC accession number; manual event `(security, MANUAL_NSE, url)`; price import `file_sha256`, then price row `(security, trade_date, import_id)`; coverage check `(security, source, window, checked_at)`. Re-ingesting the same content is a no-op. `source_document` is unique on `(source, source_doc_key, content_sha256)`.
+- **Event identity and versions** (contract fixed 2026-09-23, before Milestone 2).
+  - A *logical event* is identified by `dedup_key = sha256(security_id | source | source_doc_key)`. `event_type` is deliberately not part of the key, so re-classifying an event creates a version, not a second event. An 8-K and its exhibits are one event. The same NSE announcement entered twice is one event.
+  - Each distinct content of a logical event is one `event` row with `version` 1, 2, …, `UNIQUE (dedup_key, version)`, its own `content_sha256`, `first_seen_at` and `doc_id` (the `source_document` version it came from). `content_sha256` hashes the normalized fields MIRROR stores (for example form, items, dates, description, URL for SEC; subject, type, times for manual entries).
+  - **Write rule:** compare new content with the **latest** version only. Equal → no-op. Different → insert version n+1, even if the content matches an older version, so a change A → B → A is recorded as three versions. Old versions are never updated or deleted.
+  - **As-of rule:** at time `T` the visible version of an event is the highest `version` with `first_seen_at ≤ T`. An event with no such version is invisible at `T` (case R1). Replay over backfilled history (§5) applies the same rule to versions after 1, because a revision is only knowable once observed.
+  - **Amended SEC filings** (for example `8-K/A`) have their own accession numbers, so they are separate events published at their own time, not versions of the original. `fields_json.form` shows the amendment.
+  - `source_document` keeps its own versions per `(source, source_doc_key)`. For SEC it is shared by every listing of the same CIK, while the events are per listing.
 - **Retries.** At most 3 attempts per HTTP request, with exponential backoff (1 s, 2 s, 4 s) on 429/5xx/timeout. No retry on 4xx other than 429. The SEC adapter keeps a global cap below 10 requests/second (it reuses the existing 0.5 s sleep) and sends the declared User-Agent.
 - **Outages.** Each run writes an `ingest_run` row per source: `started_at, finished_at, status (ok | partial | failed), records_new, error`. Each per-security result writes a `coverage_check` row (§4.4). The brief header shows each source's **last successful fetch time**. A failed source is displayed as failed. It is never shown as "no events".
-- **Backfill.** The SEC adapter can backfill a date range from the submissions JSON. Backfilled records get `first_seen_at` = the backfill time (the truth), and `availability_basis = 'publisher_timestamp'` (§5).
+- **SEC fetch coverage and backfill** (contract fixed 2026-09-23). The submissions JSON holds "at least one year's of filing or to 1,000 (whichever is more) of the most recent filings" in `filings.recent`. Older filings are in additional files listed in `filings.files` with their date ranges **[src]** [SEC EDGAR APIs](https://www.sec.gov/search-filings/edgar-application-programming-interfaces). An additional file uses the same columnar fields as `recent` **[run]** (Apple, CIK 320193: `recent` back to 2015-07-27; one file covering 1994-01-26 to 2015-07-25). A fetch at time `F` therefore **covers** the union of:
+  - `recent`: from the start of the day **after** its oldest `filingDate` (00:00 America/New_York) up to `F`. The boundary day is excluded because filings on it may continue in an older file. If `filings.files` is empty, `recent` is the complete history, so coverage starts at the beginning of time.
+  - each additional file **fetched successfully** in the same run: from `filingFrom` 00:00 ET to the day after `filingTo`, 00:00 ET.
+
+  A `coverage_check` for window `[a, b]` is `ok` only if that union contains the whole window. Otherwise it is `partial`, with a `scope_note` naming the missing range and the file that holds it. The adapter fetches an additional file only when the requested window reaches before `recent`'s coverage. Backfilled records get `first_seen_at` = the backfill time (the truth) and are replayed by `published_at` (§5). Filings accepted in the last moments before `F` may not yet appear: SEC describes the delay as "typical", not guaranteed. This is accepted and noted, not hidden.
 - **Freshness.** Price staleness is computed against the exchange calendar (§7). Every brief item shows its data-as-of time.
 
 ### 4.3 India source investigation (time-bounded; decides India automation)
@@ -122,20 +131,22 @@ This is a research task, not code. Its output is **ADR 0002: India disclosure an
 
 ### 4.4 Coverage states
 
-A brief must never present "nothing entered" as "nothing happened". Every `(security, required source, window)` resolves to exactly one state:
+A brief must never present "nothing entered" as "nothing happened". Every `(security, required source, window)` resolves to exactly one of **five** states, evaluated as of `T` (only checks with `checked_at ≤ T` and event versions with `first_seen_at ≤ T` count):
 
 | State | Rule | Brief shows |
 |---|---|---|
-| `checked_no_events` | A `coverage_check` with `status = ok` covers the **whole** window, and no events for the security fall in it | "Checked <source> through <time>: no new disclosures" |
+| `checked_with_events` | `ok` checks together cover the **whole** window, and ≥1 visible event from that source for the security has `published_at` in the window | The events under "What changed", plus "Checked <source> through <time>: N new disclosure(s) above" |
+| `checked_no_events` | `ok` checks together cover the **whole** window, and no such event exists | "Checked <source> through <time>: no new disclosures" |
 | `not_checked` | No `coverage_check` overlaps the window | "**Not checked:** <source> has no check since <last time>" |
-| `source_failed` | The latest check attempt covering the window has `status = failed` | "**Source failed:** <source> at <time>; last success <time>" |
-| `coverage_incomplete` | Checks cover only part of the window, or a check has `status = partial` with a `scope_note` (for example "results page only") | "**Coverage incomplete:** <source> checked <from>–<to>, or <scope note>" |
+| `source_failed` | Coverage is not complete, and the latest check attempt overlapping the window has `status = failed` | "**Source failed:** <source> at <time>; last success <time>" |
+| `coverage_incomplete` | Coverage is not complete, the latest overlapping attempt did not fail, and some `ok` or `partial` check overlaps the window (for example a manual check through mid-window, `--partial --note "results page only"`, or an SEC backfill missing an older file) | "**Coverage incomplete:** <source> checked <from>–<to>, or <scope note>" |
 
+- **Precedence:** complete `ok` coverage decides first, so a later failed retry does not erase an earlier complete check. Then `source_failed`, then `coverage_incomplete`, then `not_checked`. Events are always listed if visible, whatever the state (case C4); the state only says how complete the search was.
 - **Required sources per market:** US → `SEC_EDGAR`; India → `NSE`, via `MANUAL_NSE` until ADR 0002 says otherwise.
 - **Windows:** "What changed" uses `(previous brief as_of, this brief as_of]`. A move card uses the move window from §5.
-- **SEC checks** are written automatically by the adapter: `ok` after a successful fetch for that CIK, `failed` after retries are exhausted.
+- **SEC checks** are written automatically by the adapter, one per watched listing (two listings sharing a CIK get one fetch and two checks): `ok` or `partial` per the fetch-coverage rule in §4.2, `failed` after retries are exhausted.
 - **Manual NSE checks** are written only when the owner runs `python -m src.cli checked NSE <symbol> --through <time>`. Entering an event does **not** imply that the rest of the window was checked.
-- **Brief grouping:** the "Nothing new" line is replaced by four groups: *Checked, no new disclosures* / *Not checked* / *Source failed* / *Coverage incomplete*. Only securities whose required sources are all `checked_no_events` appear in the first group.
+- **Brief grouping:** the "Nothing new" line is replaced by one group per state: *Checked, new disclosures above* / *Checked, no new disclosures* / *Not checked* / *Source failed* / *Coverage incomplete*. A security appears under a *Checked* group only if all its required sources are checked for the window.
 
 ## 5. Point-in-time provenance
 
@@ -290,6 +301,8 @@ India and US do **not** share one filing rulebook. `event_type` is a small commo
 - **Symbol history semantics.** Periods are half-open `[valid_from, valid_to)`. `valid_from` is the first day the owner asserts the mapping, not necessarily the listing date. A period can be closed once (`valid_to` set) but never moved or reassigned. Overlaps are rejected per security and per `(exchange, symbol)`, and the whole watchlist load rolls back ([src/store/db.py](../../src/store/db.py)).
 - **Also added:** `created_at`/`updated_at` on `security`, `active` on `watchlist_item` (a security dropped from the watchlist file is deactivated, not deleted), and `PRAGMA user_version = 1` as the schema version. Thesis or horizon edits from the watchlist file update the item and append a `feedback` row (`thesis_update`) with the old and new values.
 
+**Milestone 2 amendment (2026-09-23).** `event` gains `version INTEGER NOT NULL` and `content_sha256 TEXT NOT NULL`. `UNIQUE (dedup_key)` becomes `UNIQUE (dedup_key, version)` (§4.2, "Event identity and versions"). Schema version 2; `init_schema` migrates a v1 database by rebuilding `event`, with existing rows becoming version 1.
+
 **Why SQLite.** There is a single user and a single writer, and the data is small (a 20-stock watchlist). It is stdlib with no server, the whole database is one file that can be backed up or attached to a bug report, and WAL mode allows readers during a write. **[inf]**
 
 **Concrete triggers to consider PostgreSQL** (any one):
@@ -350,7 +363,7 @@ An event reported after the close is shown under "Reported after the move" and n
   1. Header: the as-of time and per-source freshness/failures.
   2. "What changed": new official events per watched stock since the last brief.
   3. Unusual-move cards.
-  4. The four coverage groups from §4.4: *Checked, no new disclosures* · *Not checked* · *Source failed* · *Coverage incomplete*. There is no undifferentiated "Nothing new" line.
+  4. The five coverage groups from §4.4: *Checked, new disclosures above* · *Checked, no new disclosures* · *Not checked* · *Source failed* · *Coverage incomplete*. There is no undifferentiated "Nothing new" line.
 - **Manual coverage.** After reviewing NSE for a stock, the owner runs `python -m src.cli checked NSE <symbol> --through <time> [--partial --note ...]`. Until they do, that stock is shown as *Not checked* for NSE.
 - **Pilot, in two parts.**
   - (a) **US utility pilot**: 10–20 stocks the owner follows, for at least 4 weeks **[inf]**, once Milestone 4 ships. SEC coverage is then measured automatically.
@@ -366,7 +379,7 @@ An event reported after the close is shown under "Reported after the move" and n
 - **Price-claim provenance.** Every price-derived number has an `import_id`, file hash, observation time and calculation trace (§5.1). An unknown upstream source is shown as "unknown". A test fails if a price number renders without all four.
 - **Number reproducibility.** Every number in the brief is recomputed from stored rows by the test suite and matches exactly.
 - **Duplicate suppression.** Ingesting the same fixtures twice produces identical row counts.
-- **Coverage honesty.** Every watched security appears in exactly one of the four coverage groups for each required source (§4.4). No security appears as *Checked, no new disclosures* without an `ok` check spanning the window.
+- **Coverage honesty.** Every watched security appears in exactly one of the five coverage groups for each required source (§4.4). No security appears in a *Checked* group without `ok` checks spanning the window.
 - **Error and freshness visibility.** A failed source appears as failed in the brief header and in the *Source failed* group. It is never silently empty.
 - **Negative cases.** A large move with no qualifying evidence produces `no_verified_explanation_yet` with complete coverage, or `no_evidence_coverage_incomplete` with the banner. It never produces a guessed cause.
 - **Historical replay.** Replay at time `T` uses only records knowable at `T` under the §5 rule.
@@ -381,6 +394,10 @@ An event reported after the close is shown under "Reported after the move" and n
 | C3 | Milestone 2 | Coverage incomplete | Manual check through the middle of the window only, **or** a check with `--partial --note "results page only"` | State `coverage_incomplete`, showing the covered span or the note |
 | C4 | Milestone 2 | Event entered, no check | One manual NSE event entered in the window; no `coverage_check` | The event is shown under "What changed", but NSE coverage stays `not_checked`. Entering an event does not imply a check |
 | C5 | Milestone 2 | US checked, no events | SEC fixture fetch succeeds for the CIK; no new filings in the window | Automatic `ok` check. State `checked_no_events` |
+| **C6** | Milestone 2 | **Checked, events found** | SEC fixture fetch succeeds; one 8-K accepted inside the window | State `checked_with_events`; the 8-K is listed with its link and `published_at` |
+| **C7** | Milestone 2 | **Shared CIK, two listings** | Two watched US listings with the same CIK; one submissions fixture | One HTTP fetch; one `source_document` per accession; an event and an `ok` check for **each** listing |
+| **V1** | Milestone 2 | **Event revision, read at two times** | Manual event v1 entered at `T1`; same URL, corrected `published_at`, entered at `T2` | Two rows, same `dedup_key`, versions 1 and 2. As of `T1 ≤ T < T2` the reader returns v1; as of `T ≥ T2` it returns v2. Re-entering v2 is a no-op |
+| **B1** | Milestone 2 | **Backfill needs the older file** | Window starts before `recent`'s oldest `filingDate`; the additional file is (a) not fetched (fetch fails) and (b) fetched | (a) `partial`, `scope_note` names the file and missing range, state `coverage_incomplete`; (b) `ok` |
 | A1 | Milestone 4 | Verified pre-open result (India) | Manual NSE results event, `published_at` 08:40 IST on `D`; NSE check `ok` through `close(D)`; `+8%` move on `D`; trigger 5 | Card with `documented_event`, tag `pre_open`, verbatim subject, link; no coverage banner |
 | A2 | Milestone 4 | Post-move news or filing | US 8-K with `acceptanceDateTime` after the close on `D`; SEC check `ok`; `+11%` move on `D` | Event listed under "Reported after the move". Label `no_verified_explanation_yet` |
 | A3 | Milestone 3 | Split or bonus day | 1:1 bonus (`new_per_old = 2`) ex on `D`; raw close halves, adjusted move `+1%` | No card (below trigger), and no −50% anywhere. The same fixture without the action row raises `possible_unrecorded_corporate_action` and holds the card |
@@ -449,7 +466,7 @@ Work directly on `main` in small commits, checking CI after each milestone. Keep
 
 **Milestone 2 — Event foundation and coverage.**
 - *Files:* `src/sources/sec_submissions.py` (keeps `acceptanceDateTime`; retries; writes `ingest_run` and `coverage_check`), `src/sources/manual_events.py`, `src/core/coverage.py` (§4.4 states), a `src/cli.py` with `ingest`, `checked` and `events` (a plain-text listing of events and coverage states; no Markdown brief yet), `tests/fixtures/sec/*.json`, `tests/fixtures/manual_events.csv`, `tests/test_events.py`, `tests/test_coverage.py`, `tests/test_asof.py`.
-- *Cases:* **C1–C5**, **R1**, A6 (state part), duplicate and versioning tests. Q3 (the `acceptanceDateTime` timezone) is checked against an EDGAR filing index page and recorded in the fixture's README.
+- *Cases:* **C1–C7**, **V1**, **B1**, **R1**, A6 (state part), and duplicate-ingest tests. Q3 is resolved (§14).
 - *Pass:* the cases above pass, and `python -m src.cli events --as-of …` against fixtures prints each security with its coverage state.
 
 **Milestone 3 — Prices, corporate actions, moves.**
@@ -470,7 +487,7 @@ Work directly on `main` in small commits, checking CI after each milestone. Keep
 |---|---|---|---|
 | Q1 | Which India disclosure route is permitted for MIRROR's use: NSE RSS polling (needs written confirmation), an NSE Data & Analytics corporate-data subscription, BSE, a broker API, or none? What does each cost? | Any India time-saving pilot; India automation | §4.3 → ADR 0002, before Milestone 4 ships |
 | Q2 | Which daily price source (India and US, including benchmarks) has terms that permit this use? | Naming an upstream source in cards (until then it shows as "unknown"); any shared output | Before the US pilot, if possible; otherwise cards say "unknown" |
-| Q3 | Is SEC `acceptanceDateTime` with `Z` actually UTC? | Exact timing tags for US events near session boundaries | Milestone 2 |
+| Q3 | Is SEC `acceptanceDateTime` with `Z` actually UTC? | Exact timing tags for US events near session boundaries | **Resolved (2026-09-23): yes.** For three Apple filings the API value is exactly 4 h (EDT, two summer filings) or 5 h (EST, one February filing) ahead of the "Accepted" time on the EDGAR filing index page, e.g. `2026-02-26T23:34:19Z` vs `2026-02-26 18:34:19` **[run]**. The index page does not print a timezone, so this is inferred from the DST-consistent offset |
 | Q4 | Exchange session times and holiday lists: which primary sources? | `calendar.py` config | **Resolved in Milestone 1:** NSE market-timings page and circulars NSE/CMTR/71775, 72260, 72349; NYSE hours-calendars page; Nasdaq holiday pages. All cited in [config/exchanges.yaml](../../config/exchanges.yaml) |
 | Q5 | India macro sources (RBI, MOSPI) and their terms | Macro in slice 2 | Later |
 | Q6 | Which issuer identifier to use for India (ISIN vs exchange symbol vs company registration number)? | Robust symbol-change handling in India | **Provisional (Milestone 1):** MIRROR `security_key` plus NSE symbol history; ISIN as a validated attribute, not a key (§6 amendment). Revisit in ADR 0002 |

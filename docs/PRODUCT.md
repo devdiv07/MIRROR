@@ -30,6 +30,7 @@ MIRROR does not tell the owner what to buy or sell, does not predict prices, and
    - **What changed:** new official disclosures per stock since the last brief, each with a link and its publication time.
    - **Unusual-move cards** for stocks that crossed their trigger.
    - **Coverage**, one group per state, so that silence never means "nothing happened":
+     - *Checked, new disclosures above*: the source was checked for the whole window, and what it found is listed under "What changed".
      - *Checked, no new disclosures*: the source was checked for the whole window and returned nothing.
      - *Not checked*: no check covers the window. For NSE this means the owner has not recorded a manual check. Entering an event does not count as checking.
      - *Source failed*: the source was tried and failed.
@@ -108,7 +109,7 @@ The measures below come from the `feedback` table, the coverage records and the 
 | Attribution errors | Count of `wrong_attribution` on move cards | Baseline; every case gets reviewed |
 | Duplicates | Repeated events in a brief | Target 0 |
 | Unexplained moves | Share of cards labelled "no verified explanation yet", reported separately from "no evidence — coverage incomplete". Reported honestly; it is not a failure metric | Informational |
-| Coverage | Per market and week: the share of (security, day) pairs in each of the four coverage states | Informational; decides when a market can join the time-saving pilot |
+| Coverage | Per market and week: the share of (security, day) pairs in each of the five coverage states | Informational; decides when a market can join the time-saving pilot |
 | Time spent | Owner's self-reported minutes per brief, **plus** minutes spent on manual NSE entry and checks, noted weekly | Informational |
 
 **After the pilot:** keep going, change course, or stop, based on these numbers and the owner's judgement. Nothing about predictive performance can be concluded from the pilot.
