@@ -42,6 +42,7 @@ Legend: ✅ current · ⚠️ accurate for what it covers, with a noted caveat �
 | 13 | [MIRROR_Architecture_Report.html](MIRROR_Architecture_Report.html) | Polished architecture report | 🗄️ Jun-19 |
 | 14 | `Phase Reports PDFs/MIRROR — Architecture…pdf` | PDF export of #13 | 🗄️ Jun-19 |
 | 15 | [backtest_results.md](backtest_results.md) | Reserved for insider backtest findings (research track T7) | 📭 empty |
+| 16 | [runs/](runs/) | Run notes: what a live run did and found, e.g. [the first live SEC ingest](runs/2026-09-23-sec-live-check.md) | ✅ |
 
 > The previous index listed `next_steps.md` and `audit_findings.md`. Neither file exists in the repository at `e068c91`, so they have been removed from this map.
 > GitHub issue/PR templates live in `.github/`. They are process scaffolding, not reading docs.
