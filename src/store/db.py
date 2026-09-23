@@ -6,6 +6,9 @@ SQLite store access (ADR 0001 §6).
   upsert_*()           idempotent writes: re-applying the same content changes nothing
   symbol_as_of(), security_id_for_symbol()
                        as-of readers over the symbol history
+  upsert_source_document(), upsert_event_version(), events_as_of()
+                       versioned documents/events and the as-of event reader (ADR §4.2)
+  insert_coverage_check(), start_ingest_run(), finish_ingest_run()
 
 History rules enforced here, not left to callers:
   - A security's market, exchange, currency and timezone never change under the same key.
@@ -17,14 +20,15 @@ History rules enforced here, not left to callers:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import sqlite3
 from contextlib import contextmanager
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Iterator
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 SCHEMA_PATH = os.path.join(os.path.dirname(__file__), 'schema.sql')
 DEFAULT_DB_PATH = os.path.join('data', 'mirror.sqlite3')
 BUSY_TIMEOUT_MS = 5000
@@ -52,9 +56,25 @@ def init_schema(conn: sqlite3.Connection) -> None:
     version = conn.execute('PRAGMA user_version').fetchone()[0]
     if version > SCHEMA_VERSION:
         raise RuntimeError(f"database schema v{version} is newer than this code (v{SCHEMA_VERSION})")
+    if version == 1:
+        _migrate_1_to_2(conn)
     with open(SCHEMA_PATH, encoding='utf-8') as f:
         conn.executescript(f.read())
     conn.execute(f'PRAGMA user_version = {SCHEMA_VERSION}')
+
+
+def _migrate_1_to_2(conn: sqlite3.Connection) -> None:
+    """v2 versions events and documents (ADR §6 Milestone 2 amendment).
+
+    v1 had no code that wrote source_document or event rows, so both tables are expected to be
+    empty and are dropped for schema.sql to recreate. If they hold rows, refuse rather than guess.
+    """
+    for table in ('event', 'source_document'):
+        n = conn.execute(f'SELECT COUNT(*) FROM {table}').fetchone()[0]
+        if n:
+            raise RuntimeError(f"cannot upgrade schema v1 -> v2: {table} has {n} rows; migrate them by hand")
+    conn.execute('DROP TABLE event')
+    conn.execute('DROP TABLE source_document')
 
 
 @contextmanager
@@ -70,6 +90,21 @@ def transaction(conn: sqlite3.Connection) -> Iterator[sqlite3.Connection]:
 
 def _iso(d: date | str | None) -> str | None:
     return d.isoformat() if isinstance(d, date) else d
+
+
+def utc_iso(dt: datetime) -> str:
+    """The store's timestamp format: 'YYYY-MM-DDTHH:MM:SSZ'. Fixed width, so text order = time order."""
+    if dt.tzinfo is None:
+        raise ValueError('timestamps must be timezone-aware')
+    return dt.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+
+def parse_utc(text: str) -> datetime:
+    return datetime.strptime(text, '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc)
+
+
+def sha256_json(payload: dict) -> str:
+    return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
 
 
 # ── security ─────────────────────────────────────────────────────────────────
@@ -216,3 +251,114 @@ def deactivate_items_except(conn: sqlite3.Connection, keep_security_ids: set[int
         conn.execute('UPDATE watchlist_item SET active = 0, updated_at = ? WHERE item_id = ?',
                      (now, r['item_id']))
     return sorted(r['security_key'] for r in gone)
+
+
+# ── versioned documents and events (ADR §4.2) ────────────────────────────────
+
+def upsert_source_document(conn: sqlite3.Connection, *, source: str, source_doc_key: str, url: str | None,
+                           content_sha256: str, published_at: str | None, published_basis: str,
+                           first_seen_at: str, tz_assumed: bool = False,
+                           raw_path: str | None = None) -> tuple[int, str]:
+    """Record a document version. Returns (doc_id, 'inserted' | 'new_version' | 'unchanged').
+
+    Compared with the latest version only: equal content is a no-op, anything else is version n+1.
+    """
+    latest = conn.execute(
+        'SELECT doc_id, version, content_sha256 FROM source_document WHERE source = ? AND source_doc_key = ?'
+        ' ORDER BY version DESC LIMIT 1', (source, source_doc_key)).fetchone()
+    if latest is not None and latest['content_sha256'] == content_sha256:
+        return latest['doc_id'], 'unchanged'
+    version = 1 if latest is None else latest['version'] + 1
+    cur = conn.execute(
+        'INSERT INTO source_document (source, source_doc_key, url, content_sha256, version, published_at,'
+        ' published_basis, tz_assumed, first_seen_at, raw_path) VALUES (?,?,?,?,?,?,?,?,?,?)',
+        (source, source_doc_key, url, content_sha256, version, published_at, published_basis,
+         int(tz_assumed), first_seen_at, raw_path))
+    return cur.lastrowid, 'inserted' if version == 1 else 'new_version'
+
+
+def event_dedup_key(security_id: int, source: str, source_doc_key: str) -> str:
+    return hashlib.sha256(f'{security_id}|{source}|{source_doc_key}'.encode()).hexdigest()
+
+
+def upsert_event_version(conn: sqlite3.Connection, *, security_id: int, source: str, source_doc_key: str,
+                         doc_id: int, event_type: str, subject: str, event_time: str | None,
+                         published_at: str | None, first_seen_at: str,
+                         fields: dict | None = None) -> tuple[int, str]:
+    """Record one version of a logical event. Returns (event_id, 'inserted' | 'new_version' | 'unchanged')."""
+    fields = fields or {}
+    content = sha256_json({'event_type': event_type, 'subject': subject, 'event_time': event_time,
+                           'published_at': published_at, 'fields': fields})
+    key = event_dedup_key(security_id, source, source_doc_key)
+    latest = conn.execute('SELECT event_id, version, content_sha256 FROM event WHERE dedup_key = ?'
+                          ' ORDER BY version DESC LIMIT 1', (key,)).fetchone()
+    if latest is not None and latest['content_sha256'] == content:
+        return latest['event_id'], 'unchanged'
+    version = 1 if latest is None else latest['version'] + 1
+    cur = conn.execute(
+        'INSERT INTO event (security_id, doc_id, dedup_key, version, content_sha256, event_type, subject,'
+        ' event_time, published_at, first_seen_at, fields_json) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+        (security_id, doc_id, key, version, content, event_type, subject, event_time, published_at,
+         first_seen_at, json.dumps(fields, sort_keys=True)))
+    return cur.lastrowid, 'inserted' if version == 1 else 'new_version'
+
+
+def events_as_of(conn: sqlite3.Connection, *, as_of: str, security_id: int | None = None,
+                 source: str | None = None, published_after: str | None = None,
+                 published_through: str | None = None) -> list[sqlite3.Row]:
+    """Events visible at `as_of`: per logical event, the highest version with first_seen_at <= as_of.
+
+    Optional filters: security, source, and published_at in (published_after, published_through].
+    Rows include the document's source, url, published_basis and tz_assumed.
+    """
+    sql = ['SELECT e.*, d.source, d.source_doc_key, d.url, d.published_basis, d.tz_assumed',
+           'FROM event e JOIN source_document d ON d.doc_id = e.doc_id',
+           'WHERE e.first_seen_at <= :as_of',
+           'AND e.version = (SELECT MAX(e2.version) FROM event e2',
+           '                 WHERE e2.dedup_key = e.dedup_key AND e2.first_seen_at <= :as_of)']
+    params = {'as_of': as_of}
+    if security_id is not None:
+        sql.append('AND e.security_id = :sid')
+        params['sid'] = security_id
+    if source is not None:
+        sql.append('AND d.source = :source')
+        params['source'] = source
+    if published_after is not None:
+        sql.append('AND e.published_at > :after')
+        params['after'] = published_after
+    if published_through is not None:
+        sql.append('AND e.published_at <= :through')
+        params['through'] = published_through
+    sql.append('ORDER BY e.published_at, e.event_id')
+    return conn.execute(' '.join(sql), params).fetchall()
+
+
+# ── coverage checks and ingest runs ──────────────────────────────────────────
+
+def insert_coverage_check(conn: sqlite3.Connection, *, security_id: int, source: str, method: str,
+                          window_start: str, window_end: str, checked_at: str, status: str,
+                          scope_note: str | None = None, error: str | None = None,
+                          run_id: int | None = None) -> int:
+    cur = conn.execute(
+        'INSERT INTO coverage_check (security_id, source, method, window_start, window_end, checked_at,'
+        ' status, scope_note, error, run_id) VALUES (?,?,?,?,?,?,?,?,?,?)',
+        (security_id, source, method, window_start, window_end, checked_at, status, scope_note, error, run_id))
+    return cur.lastrowid
+
+
+def last_covered_through(conn: sqlite3.Connection, security_id: int, source: str) -> str | None:
+    """End of the latest ok/partial check for (security, source): where the next check resumes."""
+    row = conn.execute("SELECT MAX(window_end) FROM coverage_check WHERE security_id = ? AND source = ?"
+                       " AND status IN ('ok', 'partial')", (security_id, source)).fetchone()
+    return row[0]
+
+
+def start_ingest_run(conn: sqlite3.Connection, source: str, started_at: str) -> int:
+    return conn.execute('INSERT INTO ingest_run (source, started_at) VALUES (?, ?)',
+                        (source, started_at)).lastrowid
+
+
+def finish_ingest_run(conn: sqlite3.Connection, run_id: int, *, finished_at: str, status: str,
+                      records_new: int, error: str | None = None) -> None:
+    conn.execute('UPDATE ingest_run SET finished_at = ?, status = ?, records_new = ?, error = ? WHERE run_id = ?',
+                 (finished_at, status, records_new, error, run_id))

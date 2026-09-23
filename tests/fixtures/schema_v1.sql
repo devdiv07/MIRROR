@@ -1,4 +1,4 @@
--- MIRROR store schema, version 2 (ADR 0001 §6 with the Milestone 1 and Milestone 2 amendments).
+-- MIRROR store schema, version 1 (ADR 0001 §6, amended in Milestone 1; see ADR §6 "Milestone 1 amendment").
 --
 -- Conventions
 --   * Timestamps are ISO-8601 UTC text, e.g. '2026-09-23T07:00:00Z'. Dates are 'YYYY-MM-DD'.
@@ -73,29 +73,22 @@ CREATE TABLE IF NOT EXISTS source_document (
   tz_assumed       INTEGER NOT NULL DEFAULT 0 CHECK (tz_assumed IN (0, 1)),
   first_seen_at    TEXT NOT NULL,
   raw_path         TEXT,
-  UNIQUE (source, source_doc_key, version)             -- versions follow the event write rule (ADR §4.2)
+  UNIQUE (source, source_doc_key, content_sha256),
+  UNIQUE (source, source_doc_key, version)
 );
 
--- One row per version of a logical event (ADR §4.2 "Event identity and versions").
--- dedup_key = sha256(security_id|source|source_doc_key) is shared by all versions; as-of reads take
--- the highest version with first_seen_at <= T. Rows are never updated or deleted.
 CREATE TABLE IF NOT EXISTS event (
-  event_id        INTEGER PRIMARY KEY,
-  security_id     INTEGER NOT NULL REFERENCES security (security_id),
-  doc_id          INTEGER NOT NULL REFERENCES source_document (doc_id),
-  dedup_key       TEXT NOT NULL,
-  version         INTEGER NOT NULL CHECK (version >= 1),
-  content_sha256  TEXT NOT NULL,
-  event_type      TEXT NOT NULL CHECK (event_type IN (
-                    'results', 'board_outcome', 'corporate_action', '8k_item', 'insider_form4', 'other_disclosure')),
-  subject         TEXT NOT NULL,                         -- verbatim from source
-  event_time      TEXT,
-  published_at    TEXT,
-  first_seen_at   TEXT NOT NULL,
-  fields_json     TEXT,
-  UNIQUE (dedup_key, version)
+  event_id       INTEGER PRIMARY KEY,
+  security_id    INTEGER NOT NULL REFERENCES security (security_id),
+  doc_id         INTEGER REFERENCES source_document (doc_id),
+  event_type     TEXT NOT NULL,                          -- 'results' | 'board_outcome' | 'corporate_action' | '8k_item' | 'insider_form4' | 'other_disclosure'
+  subject        TEXT NOT NULL,                          -- verbatim from source
+  event_time     TEXT,
+  published_at   TEXT,
+  first_seen_at  TEXT NOT NULL,
+  fields_json    TEXT,
+  dedup_key      TEXT NOT NULL UNIQUE
 );
-CREATE INDEX IF NOT EXISTS ix_event_security_published ON event (security_id, published_at);
 
 -- One row per imported price file (ADR §5.1): provenance for every price claim.
 CREATE TABLE IF NOT EXISTS price_import (
