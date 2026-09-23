@@ -63,7 +63,7 @@ def test_10b51_raw_none_when_absent():
     rows = parse_form4_xml(xml, 'TEST', '2022-06-02')
     assert len(rows) == 1
     assert rows[0]['is_10b51_raw'] is None, f"Expected None, got {rows[0]['is_10b51_raw']}"
-    print(f"  PASS: no aff10b5One → is_10b51_raw=None")
+    print("  PASS: no aff10b5One → is_10b51_raw=None")
 
 
 def test_10b51_raw_zero_when_not_plan():
@@ -89,7 +89,7 @@ def test_10b51_raw_zero_when_not_plan():
     rows = parse_form4_xml(xml, 'TEST', '2026-01-16')
     assert len(rows) == 1
     assert rows[0]['is_10b51_raw'] == 0, f"Expected 0, got {rows[0]['is_10b51_raw']}"
-    print(f"  PASS: aff10b5One=0 → is_10b51_raw=0")
+    print("  PASS: aff10b5One=0 → is_10b51_raw=0")
 
 
 # ── footnote tests ────────────────────────────────────────────────────────────
@@ -149,7 +149,7 @@ def test_footnotes_none_when_absent():
     rows = parse_form4_xml(xml, 'TEST', '2026-01-16')
     assert len(rows) == 1
     assert rows[0]['footnotes'] is None, f"Expected None, got {rows[0]['footnotes']}"
-    print(f"  PASS: no footnotes → footnotes=None")
+    print("  PASS: no footnotes → footnotes=None")
 
 
 # ── enrich_tenb51 integration test ───────────────────────────────────────────
@@ -171,7 +171,7 @@ def test_enrich_tenb51_uses_is_10b51_raw():
     result = enrich_tenb51(df)
     plan = result['is_10b51_plan'].iloc[0]
     assert plan == True, f"Expected True, got {plan} (type={type(plan)})"
-    print(f"  PASS: is_10b51_raw=1 → is_10b51_plan=True (enrich_tenb51 integration)")
+    print("  PASS: is_10b51_raw=1 → is_10b51_plan=True (enrich_tenb51 integration)")
 
 
 def test_enrich_tenb51_uses_footnotes_when_raw_absent():
@@ -190,7 +190,7 @@ def test_enrich_tenb51_uses_footnotes_when_raw_absent():
     result = enrich_tenb51(df)
     plan = result['is_10b51_plan'].iloc[0]
     assert plan == True, f"Expected True from footnote regex, got {plan} (type={type(plan)})"
-    print(f"  PASS: footnote regex detected 10b5-1 plan → is_10b51_plan=True")
+    print("  PASS: footnote regex detected 10b5-1 plan → is_10b51_plan=True")
 
 
 if __name__ == '__main__':

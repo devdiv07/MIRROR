@@ -378,7 +378,7 @@ def parse_all_filings(filings_csv_path='data/insider_filings.csv'):
     print(f"Fetch errors            : {error_count}")
     print(f"Transactions saved      : {len(df)}  ({buy_total} BUY, {sell_total} SELL)")
     print(f"With ownership data     : {with_ownership} ({100*with_ownership/len(df):.0f}%)")
-    print(f"Saved to                : data/insider_transactions.csv")
+    print("Saved to                : data/insider_transactions.csv")
     print("=" * 60)
 
     return df

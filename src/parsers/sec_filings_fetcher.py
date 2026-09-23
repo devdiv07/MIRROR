@@ -125,7 +125,7 @@ def collect_all_insider_filings(cik_map=None):
 
     print("\n" + "=" * 50)
     print(f"total filings collected: {len(df)}")
-    print(f"Saved to: data/insider_filings.csv")
+    print("Saved to: data/insider_filings.csv")
     print("=" * 50)
 
     return df

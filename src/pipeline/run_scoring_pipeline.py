@@ -4,14 +4,12 @@ MIRROR - Phase 2 Scoring Pipeline
 Runs enrichment and scoring on cached transaction data
 """
 import pandas as pd
-import sys
-import os
 from datetime import datetime
 
 from src.enrichment.enrich_ownership import enrich_ownership
 from src.enrichment.enrich_market_context import enrich_market_context
 from src.enrichment.enrich_tenb51 import enrich_tenb51
-from src.scoring.aggregator import aggregate, explain, load_config, SCORER_REGISTRY
+from src.scoring.aggregator import aggregate, explain, load_config
 from src.scoring import cluster  # triggers @register_scorer decorators
 
 def main():
@@ -28,22 +26,22 @@ def main():
     # Enrich ownership context
     print("\n[2/6] Enriching ownership fields...")
     df = enrich_ownership(df)
-    print(f"  Added: shares_owned_before, pct_holdings_transacted")
+    print("  Added: shares_owned_before, pct_holdings_transacted")
 
     # Enrich market context (market cap, ADV)
     print("\n[3/6] Enriching market context (market cap, 30d ADV)...")
     df = enrich_market_context(df)
-    print(f"  Added: market_cap, avg_30d_dollar_volume")
+    print("  Added: market_cap, avg_30d_dollar_volume")
 
     # Enrich 10b5-1 plan detection
     print("\n[4/6] Detecting 10b5-1 plan trades...")
     df = enrich_tenb51(df)
-    print(f"  Added: is_10b51_plan")
+    print("  Added: is_10b51_plan")
 
     # Set up cluster context for batch scoring
     print("\n[5/6] Setting cluster context...")
     cluster.set_transactions_context(df)
-    print(f"  Cluster detector ready")
+    print("  Cluster detector ready")
 
     # Load config and score
     print("\n[6/6] Scoring transactions...")
@@ -88,7 +86,7 @@ def main():
 
         # Show detailed breakdown
         breakdown = explain(row, config)
-        print(f"   Breakdown:")
+        print("   Breakdown:")
         for scorer_name, details in breakdown['contributions'].items():
             if details['raw_score'] != 0:
                 print(f"      {scorer_name:20} raw={details['raw_score']:6.3f} × weight={details['weight']:6.2f} = {details['contribution']:6.3f}")
@@ -102,7 +100,7 @@ def main():
 
         # Show detailed breakdown
         breakdown = explain(row, config)
-        print(f"   Breakdown:")
+        print("   Breakdown:")
         for scorer_name, details in breakdown['contributions'].items():
             if details['raw_score'] != 0:
                 print(f"      {scorer_name:20} raw={details['raw_score']:6.3f} × weight={details['weight']:6.2f} = {details['contribution']:6.3f}")

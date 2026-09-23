@@ -10,7 +10,7 @@ edit config/scoring.yaml and re-run. No code changes needed.
 
 from __future__ import annotations
 from typing import Dict, Any
-from .registry import SCORER_REGISTRY, assert_all_registered
+from .registry import SCORER_REGISTRY
 
 
 # Default config — used if config/scoring.yaml is missing or malformed.

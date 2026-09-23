@@ -8,7 +8,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.parsers.insider_parser_v2 import parse_form4_xml
 from src.scoring.aggregator import aggregate
-from src.scoring import conviction, role, market_cap, liquidity, cluster, routine_penalty, tenb_penalty  # noqa: F401
 
 
 # ── Parser tests ─────────────────────────────────────────────────────────────
@@ -35,7 +34,7 @@ def test_entity_filer_tagged_in_parser():
     rows = parse_form4_xml(xml, 'GS', '2026-01-16')
     assert len(rows) == 1, f"Expected 1 row, got {len(rows)}"
     assert rows[0]['is_company'] is True, f"Expected is_company=True, got {rows[0]['is_company']}"
-    print(f"  PASS: entity filer tagged as is_company=True")
+    print("  PASS: entity filer tagged as is_company=True")
 
 
 def test_human_filer_not_tagged():
@@ -62,7 +61,7 @@ def test_human_filer_not_tagged():
     rows = parse_form4_xml(xml, 'JPM', '2026-01-16')
     assert len(rows) == 1
     assert rows[0]['is_company'] is False, f"Expected is_company=False, got {rows[0]['is_company']}"
-    print(f"  PASS: human filer tagged as is_company=False")
+    print("  PASS: human filer tagged as is_company=False")
 
 
 # ── Aggregator gate tests ─────────────────────────────────────────────────────
@@ -84,7 +83,7 @@ def test_aggregator_gates_entity_filer():
     }
     result = aggregate(row)
     assert result == 0.0, f"Expected 0.0 for entity filer, got {result}"
-    print(f"  PASS: entity filer gated → signal = 0.0")
+    print("  PASS: entity filer gated → signal = 0.0")
 
 
 def test_aggregator_does_not_gate_human():

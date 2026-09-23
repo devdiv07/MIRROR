@@ -68,7 +68,6 @@ def score_cluster(row: dict) -> float:
     ticker = row.get('ticker')
     tx_type = row.get('transaction_type')
     tx_date = row.get('date')
-    this_insider = row.get('insider_name', '')
 
     if not ticker or not tx_type or not tx_date:
         return 0.10

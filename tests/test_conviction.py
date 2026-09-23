@@ -83,7 +83,7 @@ def test_null_pct_returns_zero():
     }
     result = score_conviction(row)
     assert result == 0.0, f"Expected 0.0, got {result}"
-    print(f"  PASS: null pct -> 0.0")
+    print("  PASS: null pct -> 0.0")
 
 
 def test_nan_pct_returns_zero():
@@ -95,7 +95,7 @@ def test_nan_pct_returns_zero():
     }
     result = score_conviction(row)
     assert result == 0.0, f"Expected 0.0, got {result}"
-    print(f"  PASS: nan pct -> 0.0")
+    print("  PASS: nan pct -> 0.0")
 
 
 def test_pct_clamped_above_one():

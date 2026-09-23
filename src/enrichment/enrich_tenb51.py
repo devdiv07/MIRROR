@@ -120,7 +120,7 @@ def enrich_tenb51(transactions_df: pd.DataFrame) -> pd.DataFrame:
     confirmed_not  = sum(1 for r in results if r is False)
     unknown        = sum(1 for r in results if r is None)
 
-    print(f"\n=== 10b5-1 ENRICHMENT ===")
+    print("\n=== 10b5-1 ENRICHMENT ===")
     print(f"  Confirmed plan trades : {confirmed_plan}")
     print(f"  Confirmed non-plan    : {confirmed_not}")
     print(f"  Unknown (no data)     : {unknown}")

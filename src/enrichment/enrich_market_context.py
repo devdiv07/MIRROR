@@ -16,7 +16,6 @@ Usage:
 from __future__ import annotations
 import pandas as pd
 import yfinance as yf
-from datetime import datetime
 
 
 def _fetch_market_context(ticker: str) -> dict:

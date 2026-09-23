@@ -19,5 +19,11 @@ from . import routine_penalty
 from . import tenb_penalty
 from . import aggregator
 
+__all__ = [
+    'SCORER_REGISTRY', 'register_scorer', 'assert_all_registered',
+    'conviction', 'role', 'market_cap', 'liquidity', 'cluster',
+    'routine_penalty', 'tenb_penalty', 'aggregator',
+]
+
 # Future scorer imports go here, e.g.:
 # from . import technical
