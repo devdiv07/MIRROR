@@ -15,6 +15,7 @@ CALENDARS = load_calendars(str(ROOT / 'config' / 'exchanges.yaml'))
 
 NOW = datetime(2026, 9, 23, 1, 0, tzinfo=timezone.utc)
 HOUR = timedelta(hours=1)
+TEST_USER_AGENT = 'MIRROR-tests tests@example.invalid'     # set for every test by tests/conftest.py
 
 WATCHLIST = """version: 1
 securities:
@@ -59,11 +60,31 @@ class FakeResponse:
         return self._payload
 
 
+class FakeClock:
+    """Offline time. monotonic() is seconds since `start`; sleep() advances it; now() is the wall clock."""
+
+    def __init__(self, start=NOW):
+        self.start, self.t, self.sleeps = start, 0.0, []
+
+    def monotonic(self):
+        return self.t
+
+    def sleep(self, seconds):
+        self.sleeps.append(seconds)
+        self.t += seconds
+
+    def now(self):
+        return self.start + timedelta(seconds=self.t)
+
+
 class FakeHttp:
     """requests.get stand-in. A route is a list of outcomes consumed in order (the last repeats):
-    an int status, a fixture file name (served with 200), a dict payload, or an exception instance."""
+    an int status, a fixture file name (served with 200), a dict payload, or an exception instance.
 
-    def __init__(self, overrides=None):
+    With a FakeClock, each request's start time is recorded in `starts`, and the clock advances by
+    `latency` seconds while the request is "in flight"."""
+
+    def __init__(self, overrides=None, clock=None, latency=0.0):
         self.routes = {}
         for path in SEC_FIXTURES.glob('CIK*.json'):
             name = path.name
@@ -73,11 +94,15 @@ class FakeHttp:
                 url = SUBMISSIONS_URL.format(cik=name[3:13])
             self.routes[url] = [name]
         self.routes.update(overrides or {})
-        self.calls = []
+        self.calls, self.starts = [], []
+        self.clock, self.latency = clock, latency
 
     def __call__(self, url, headers=None, timeout=None):
-        assert headers and 'User-Agent' in headers and timeout
+        assert headers and headers.get('User-Agent') == TEST_USER_AGENT and timeout
         self.calls.append(url)
+        if self.clock is not None:
+            self.starts.append(self.clock.t)
+            self.clock.t += self.latency
         outcomes = self.routes.get(url, [404])
         outcome = outcomes.pop(0) if len(outcomes) > 1 else outcomes[0]
         if isinstance(outcome, Exception):

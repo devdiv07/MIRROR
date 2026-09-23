@@ -13,15 +13,16 @@ from src.sources import manual_events
 from src.sources.sec_submissions import FILE_URL, ingest_sec
 from src.store import db
 from tests.support import (
-    HOUR, NOW, ROOT, FakeHttp, cik_url, fixture, new_store, no_sleep, sid, us_securities,
+    HOUR, NOW, ROOT, FakeClock, FakeHttp, cik_url, fixture, new_store, sid, us_securities,
 )
 
 T = db.utc_iso
 
 
-def _ingest(conn, http, now=NOW, since=None, sleeps=None):
+def _ingest(conn, http, now=NOW, since=None, clock=None):
+    clock = clock or FakeClock(now)
     return ingest_sec(conn, us_securities(conn), now=now, since=since, get=http,
-                      sleep=(sleeps.append if sleeps is not None else no_sleep))
+                      sleep=clock.sleep, monotonic=clock.monotonic)
 
 
 def _state(conn, key, source, start, end, as_of=None):
@@ -110,11 +111,11 @@ def test_sec_metadata_revision_is_a_new_version_read_at_two_times(tmp_path):    
 def test_outage_after_three_attempts_is_recorded_not_hidden(tmp_path):                  # A6 (state)
     conn = new_store(tmp_path)
     http = FakeHttp({cik_url('1234'): [503]})
-    sleeps = []
-    report = _ingest(conn, http, sleeps=sleeps)
+    clock = FakeClock()
+    report = _ingest(conn, http, clock=clock)
 
     assert http.calls.count(cik_url('1234')) == 3
-    assert sleeps[:2] == [1.0, 2.0]                                      # backoff before retries 2 and 3
+    assert clock.sleeps[:2] == [1.0, 2.0]                                # backoff before retries 2 and 3
     assert report.status == 'partial'                                   # other CIKs succeeded
     for key in ('US:NASDAQ:TDCA', 'US:NASDAQ:TDCB'):
         status, error = report.checks[key]

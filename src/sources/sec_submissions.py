@@ -14,9 +14,11 @@ Coverage of a fetch at time F (ADR §4.2, "SEC fetch coverage and backfill"):
 A check is 'ok' only if that union contains the whole window, otherwise 'partial' with a
 scope_note naming what is missing. Additional files are fetched only when the window needs them.
 
-HTTP: declared User-Agent (SEC_USER_AGENT), timeout 30 s, at most 3 attempts per request
-retrying 429/5xx/timeouts/connection errors after 1 s then 2 s, no retry on other 4xx, and a
-0.5 s pause between CIKs (SEC's stated limit is 10 requests/second).
+HTTP (SecClient): the User-Agent comes from SEC_USER_AGENT, which must be set (there is no
+built-in contact); timeout 30 s; at most 3 attempts per request, retrying 429/5xx/timeouts/
+connection errors after 1 s then 2 s, no retry on other 4xx. One rate limit covers every request
+of a run, including additional files and retries: at least MIN_REQUEST_INTERVAL between the
+starts of any two requests (SEC's stated limit is 10 requests/second).
 `acceptanceDateTime` is UTC (ADR §14 Q3), stored as published_at with basis source_timestamp.
 """
 
@@ -38,11 +40,9 @@ SOURCE = 'SEC_EDGAR'
 SUBMISSIONS_URL = 'https://data.sec.gov/submissions/CIK{cik}.json'
 FILE_URL = 'https://data.sec.gov/submissions/{name}'
 ARCHIVE_URL = 'https://www.sec.gov/Archives/edgar/data/{cik}/{accession_nodash}/{document}'
-USER_AGENT = os.getenv('SEC_USER_AGENT', 'MIRROR/1.0 (contact: raghavdharwal07@gmail.com)')
-
 EVENT_TYPE_BY_FORM = {'8-K': '8k_item', '10-Q': 'results', '10-K': 'results', '4': 'insider_form4'}
 RETRY_WAITS = (1.0, 2.0)            # 3 attempts in total
-PAUSE_BETWEEN_CIKS = 0.5
+MIN_REQUEST_INTERVAL = 0.5          # seconds between request starts: at most 2/s, well under SEC's 10/s
 DEFAULT_LOOKBACK = timedelta(days=7)
 _ET = ZoneInfo('America/New_York')
 _BEGINNING = '0001-01-01T00:00:00Z'
@@ -52,22 +52,58 @@ class FetchError(Exception):
     """A request failed after retries, or with a non-retryable status."""
 
 
-def fetch_json(url: str, *, get: Callable = requests.get, sleep: Callable = time.sleep) -> dict:
-    last = ''
-    for attempt in range(len(RETRY_WAITS) + 1):
-        try:
-            resp = get(url, headers={'User-Agent': USER_AGENT, 'Accept-Encoding': 'gzip, deflate'}, timeout=30)
-        except (requests.Timeout, requests.ConnectionError) as e:
-            last = f'{type(e).__name__}: {e}'
-        else:
-            if resp.status_code == 200:
-                return resp.json()
-            last = f'HTTP {resp.status_code}'
-            if resp.status_code != 429 and resp.status_code < 500:
-                raise FetchError(f'{url}: {last} (not retried)')
-        if attempt < len(RETRY_WAITS):
-            sleep(RETRY_WAITS[attempt])
-    raise FetchError(f'{url}: {last} after {len(RETRY_WAITS) + 1} attempts')
+class MissingUserAgent(ValueError):
+    """SEC_USER_AGENT is not set, so no SEC request may be sent."""
+
+
+def user_agent_from_env() -> str:
+    """The declared User-Agent. SEC asks automated clients for a name and a contact email."""
+    ua = os.environ.get('SEC_USER_AGENT', '').strip()
+    if '@' not in ua:
+        raise MissingUserAgent(
+            'SEC_USER_AGENT is not set (or has no contact email). SEC asks automated clients to declare '
+            'who they are; set it first, e.g. SEC_USER_AGENT="Your Name your.email@example.com". '
+            'No SEC request was sent.')
+    return ua
+
+
+class SecClient:
+    """Every SEC request of one run: the declared User-Agent, one rate limit and retries.
+
+    The rate limit applies to each attempt, so additional files and retries are paced like
+    first requests. `get`, `sleep` and `monotonic` are injectable for offline tests.
+    """
+
+    def __init__(self, user_agent: str, *, get: Callable = requests.get, sleep: Callable = time.sleep,
+                 monotonic: Callable[[], float] = time.monotonic):
+        self._headers = {'User-Agent': user_agent, 'Accept-Encoding': 'gzip, deflate'}
+        self._get, self._sleep, self._monotonic = get, sleep, monotonic
+        self._last_start: float | None = None
+
+    def _wait_turn(self) -> None:
+        if self._last_start is not None:
+            delay = self._last_start + MIN_REQUEST_INTERVAL - self._monotonic()
+            if delay > 0:
+                self._sleep(delay)
+        self._last_start = self._monotonic()
+
+    def fetch_json(self, url: str) -> dict:
+        last = ''
+        for attempt in range(len(RETRY_WAITS) + 1):
+            self._wait_turn()
+            try:
+                resp = self._get(url, headers=self._headers, timeout=30)
+            except (requests.Timeout, requests.ConnectionError) as e:
+                last = f'{type(e).__name__}: {e}'
+            else:
+                if resp.status_code == 200:
+                    return resp.json()
+                last = f'HTTP {resp.status_code}'
+                if resp.status_code != 429 and resp.status_code < 500:
+                    raise FetchError(f'{url}: {last} (not retried)')
+            if attempt < len(RETRY_WAITS):
+                self._sleep(RETRY_WAITS[attempt])
+        raise FetchError(f'{url}: {last} after {len(RETRY_WAITS) + 1} attempts')
 
 
 def _et_midnight(d: date) -> str:
@@ -98,10 +134,10 @@ class _CikFetch:
     error: str | None = None
 
 
-def _fetch_cik(cik: str, earliest_start: str, fetched_at: str, get, sleep) -> _CikFetch:
+def _fetch_cik(client: SecClient, cik: str, earliest_start: str, fetched_at: str) -> _CikFetch:
     out = _CikFetch()
     try:
-        doc = fetch_json(SUBMISSIONS_URL.format(cik=cik), get=get, sleep=sleep)
+        doc = client.fetch_json(SUBMISSIONS_URL.format(cik=cik))
     except FetchError as e:
         out.error = str(e)
         return out
@@ -123,7 +159,7 @@ def _fetch_cik(cik: str, earliest_start: str, fetched_at: str, get, sleep) -> _C
         if hi <= earliest_start or lo >= recent_from:
             continue                                 # not needed for this window
         try:
-            extra = fetch_json(FILE_URL.format(name=f['name']), get=get, sleep=sleep)
+            extra = client.fetch_json(FILE_URL.format(name=f['name']))
         except FetchError as e:
             out.missing.append(f"{f['filingFrom']}..{f['filingTo']} in {f['name']} not fetched ({e})")
             continue
@@ -155,12 +191,15 @@ class SecReport:
 
 
 def ingest_sec(conn, securities: list, *, now: datetime, since: datetime | None = None,
-               get: Callable = requests.get, sleep: Callable = time.sleep) -> SecReport:
+               get: Callable = requests.get, sleep: Callable = time.sleep,
+               monotonic: Callable[[], float] = time.monotonic) -> SecReport:
     """Fetch and store SEC filings for US securities (rows with security_id, security_key, company_id).
 
     Each listing's window starts at `since` if given (backfill), else where its last ok/partial
     SEC check ended, else now - DEFAULT_LOOKBACK; it ends at `now`, the fetch time.
+    Raises MissingUserAgent, before any request or store write, if SEC_USER_AGENT is not set.
     """
+    client = SecClient(user_agent_from_env(), get=get, sleep=sleep, monotonic=monotonic)
     fetched_at = db.utc_iso(now)
     run_id = db.start_ingest_run(conn, SOURCE, fetched_at)
     by_cik: dict[str, list] = {}
@@ -169,15 +208,13 @@ def ingest_sec(conn, securities: list, *, now: datetime, since: datetime | None 
 
     report = SecReport(run_id, 'ok', 0, 0)
     statuses = []
-    for n, (cik, group) in enumerate(sorted(by_cik.items())):
-        if n:
-            sleep(PAUSE_BETWEEN_CIKS)
+    for cik, group in sorted(by_cik.items()):
         starts = {}
         for s in group:
             resume = db.last_covered_through(conn, s['security_id'], SOURCE)
             start = db.utc_iso(since) if since else (resume or db.utc_iso(now - DEFAULT_LOOKBACK))
             starts[s['security_id']] = min(start, fetched_at)
-        fetch = _fetch_cik(cik, min(starts.values()), fetched_at, get, sleep)
+        fetch = _fetch_cik(client, cik, min(starts.values()), fetched_at)
         report.fetches += 1
         with db.transaction(conn):
             _record_cik(conn, group, starts, fetch, fetched_at, run_id, report, statuses)
