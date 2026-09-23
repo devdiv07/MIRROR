@@ -25,15 +25,17 @@ The product **does not wait for an insider IC result**. The insider score is a s
 
 Work directly on `main` in small commits. Check CI and the named ADR cases after each milestone (ADR §13).
 
-### Step 0 — make CI green _(ACTIVE)_
-- [ ] Fix the 44 existing pyflakes findings without changing behaviour. Keep the scorer-registration imports (list them in `__all__`; pyflakes ignores `# noqa`). Do not remove or skip the lint step.
+### Step 0 — make CI green _(done 2026-09-23)_
+- [x] Fix the 44 existing pyflakes findings without changing behaviour. Keep the scorer-registration imports (list them in `__all__`; pyflakes ignores `# noqa`). Do not remove or skip the lint step.
 - **Done when:** CI on `main` is green **and** its pytest and pip-audit steps actually ran, with their results recorded here.
+- **Result:** lint fixes in `589eaed`. The first `pip-audit --strict` run then failed on PYSEC-2026-3740 in `nltk` (via `textblob`; no fixed release). `0f95961` moved `textblob` to `requirements-legacy.txt` (ADR §13, Milestone 0). CI on `63cf01e` ([run 35858038008](https://github.com/devdiv07/MIRROR/actions/runs/35858038008)): pyflakes clean · pytest **31 passed** · pip-audit **"No known vulnerabilities found"**. Open item: GitHub has disabled the weekly *Security Scan* workflow for inactivity; it needs re-enabling in the repo's Actions settings.
 
-### Step 1 — put the architecture baseline on `main`
-- [ ] Commit PRODUCT.md, this focus file, INDEX.md, the ADR and README directly to `main`; close the superseded draft PR.
+### Step 1 — put the architecture baseline on `main` _(done 2026-09-23)_
+- [x] Commit PRODUCT.md, this focus file, INDEX.md, the ADR and README directly to `main`; close the superseded draft PR.
 - **Done when:** the docs are on `main`, the draft PR is closed, and CI is green.
+- **Result:** docs in `63cf01e`; draft PR #1 closed as superseded; CI green on that commit.
 
-### Step 2 — store: store, identity, calendar config
+### Step 2 — store: store, identity, calendar config _(ACTIVE)_
 - [ ] `src/store/schema.sql` + `db.py` (ADR §6, including `price_import` and `coverage_check`), `src/core/identity.py`, `src/core/calendar.py`, `config/watchlist.example.yaml`, `config/exchanges.yaml`, holiday files that cite their primary sources
 - **Done when:** loading a 1 NSE + 1 US watchlist twice gives identical rows, symbol-change and calendar tests pass, and CI is green.
 

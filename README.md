@@ -25,7 +25,7 @@ pip install -r requirements-dev.txt     # includes requirements.txt
 python -m pytest tests/ -v
 ```
 
-Last observed result: **31 passed, 2 warnings** (2026-09-23, Windows 11, Python 3.13.5). The tests cover the insider parser, enrichment and scorers only. CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs `pyflakes src/ tests/`, then pytest, then `pip-audit --strict`. **CI is currently red.** It has failed at the pyflakes step on `main` since `e068c91` (unused imports and placeholder-free f-strings in existing code), so the pytest and pip-audit steps do not run in CI. Fixing that is the active task ([docs/FOCUS.md](docs/FOCUS.md) Step 0).
+Last observed result: **31 passed, 2 warnings**, locally (2026-09-23, Windows 11, Python 3.13.5) and in CI. The tests cover the insider parser, enrichment and scorers only. CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs `pyflakes src/ tests/`, then pytest, then `pip-audit --strict`. All three passed on `63cf01e` ([run 35858038008](https://github.com/devdiv07/MIRROR/actions/runs/35858038008)). CI had been red at the pyflakes step since `e068c91` until then. `legacy/` needs `pip install -r requirements-legacy.txt`, which is not audited in CI; see the note in that file.
 
 ## Running the insider research pipeline (optional, research only)
 
