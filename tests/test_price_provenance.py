@@ -5,9 +5,11 @@ newest-import-wins as-of reads, and rejection of bad files. Offline; fixtures in
 
 import hashlib
 import re
+from datetime import date
 
 import pytest
 
+from src.compute.moves import compute_move, price_claim_lines
 from src.sources.prices_csv import PriceInputError, import_price_file
 from src.store import db
 from tests.support import CALENDARS, HOUR, NOW, ROOT, new_store, sid
@@ -113,6 +115,49 @@ def test_bad_file_is_rejected_whole(tmp_path, case):
         _import(conn, _write(tmp_path, text))
     assert conn.execute('SELECT COUNT(*) FROM price_import').fetchone()[0] == 0
     assert conn.execute('SELECT COUNT(*) FROM price_bar').fetchone()[0] == 0
+
+
+# ── P1 / P2: what a price claim shows ────────────────────────────────────────
+
+def _move(conn, key='US:NASDAQ:TDCA'):
+    return compute_move(conn, sid(conn, key), date(2026, 9, 22), as_of=T(NOW), calendars=CALENDARS)
+
+
+def test_p1_unknown_upstream_is_shown_as_unknown_with_the_trace(tmp_path):              # P1
+    conn = new_store(tmp_path)
+    path = PRICES / 'us_unknown_upstream.csv'
+    _import(conn, path)
+    lines = price_claim_lines(_move(conn))
+    sha12 = hashlib.sha256(path.read_bytes()).hexdigest()[:12]
+    assert lines[0] == '+8.40% adjusted close-to-close (2026-09-21 to 2026-09-22)'   # the move is shown
+    assert lines[1].startswith('trace: close 108.40 (2026-09-22) vs 100.00 (2026-09-21) ÷ k=1 · import #1 · calc ')
+    assert lines[-1] == (f'Upstream price source: unknown (owner-supplied file us_unknown_upstream.csv,'
+                         f' sha256 {sha12}, imported 2026-09-23T01:00:00Z)')
+
+
+def test_declared_upstream_is_named(tmp_path):
+    conn = new_store(tmp_path)
+    _import(conn, PRICES / 'us_declared_vendor.csv')
+    last = price_claim_lines(_move(conn))[-1]
+    assert last.startswith('Upstream price source: Example Data Co end-of-day export (synthetic)'
+                           ' <https://data.example.com/eod/TDCA> (file us_declared_vendor.csv, sha256 ')
+    assert last.endswith(', vendor as of 2026-09-23T02:15:00Z)')
+
+
+@pytest.mark.parametrize('orphan_day', ['2026-09-22', '2026-09-21'])
+def test_p2_bar_without_provenance_shows_no_number(tmp_path, orphan_day):             # P2
+    conn = new_store(tmp_path)
+    _import(conn, PRICES / 'us_unknown_upstream.csv')
+    tdca = sid(conn, 'US:NASDAQ:TDCA')
+    conn.execute('PRAGMA foreign_keys = OFF')                            # the fixture forces a dangling import
+    conn.execute('INSERT INTO price_bar (security_id, trade_date, import_id, close_raw, volume)'
+                 ' VALUES (?, ?, 999, 123.45, 777)', (tdca, orphan_day))
+    conn.execute('PRAGMA foreign_keys = ON')
+    m = _move(conn)
+    assert m.status == 'missing_provenance' and m.move is None and m.close is None
+    lines = price_claim_lines(m)
+    assert lines == ['price data missing provenance']
+    assert not re.search(r'\d', ' '.join(lines))                         # no bare number of any kind
 
 
 def test_line_numbers_count_the_declarations(tmp_path):
