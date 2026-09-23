@@ -1,17 +1,25 @@
 """
-SEC adapter hardening (Step 3 follow-up): the declared User-Agent and one rate limit for every request.
+SEC adapter hardening (Step 3 follow-up): the declared User-Agent, one rate limit for every request,
+and invalid responses recorded as failures.
 Offline: HTTP is tests.support.FakeHttp; time is tests.support.FakeClock.
 """
 
+import copy
 import io
 from datetime import date, timedelta
 
 import pytest
 
 from src import cli
-from src.sources.sec_submissions import FILE_URL, MIN_REQUEST_INTERVAL, MissingUserAgent, ingest_sec
+from src.core.coverage import coverage
+from src.sources import sec_submissions
+from src.sources.sec_submissions import (
+    _DOCUMENT, FILE_URL, MIN_REQUEST_INTERVAL, MissingUserAgent, ingest_sec,
+)
 from src.store import db
-from tests.support import NOW, FakeClock, FakeHttp, cik_url, new_store, us_securities
+from tests.support import (
+    HOUR, NOW, BadJson, FakeClock, FakeHttp, cik_url, fixture, new_store, sid, us_securities,
+)
 
 T = db.utc_iso
 
@@ -130,3 +138,140 @@ def test_slow_responses_are_not_delayed_further(tmp_path):
     http = FakeHttp(clock=clock, latency=2.0)                            # each request takes 2 s
     _ingest(conn, http, clock)
     assert clock.sleeps == []                                            # the interval had already passed
+
+
+# ── invalid responses are recorded failures, never complete coverage ────────
+
+def _cov(conn, key, start, end, as_of=None):
+    return coverage(conn, security_id=sid(conn, key), source='SEC_EDGAR', window_start=start,
+                    window_end=end, as_of=as_of or end)
+
+
+def test_malformed_json_on_submissions_is_a_recorded_failure(tmp_path):
+    conn = new_store(tmp_path)
+    clock = FakeClock()
+    http = FakeHttp({cik_url('5678'): [BadJson()]}, clock=clock)
+    report = _ingest(conn, http, clock)
+
+    assert http.calls.count(cik_url('5678')) == 3                        # retried like a 5xx
+    status, error = report.checks['US:NYSE:TQC']
+    assert status == 'failed' and 'invalid JSON' in error and 'after 3 attempts' in error
+    assert _cov(conn, 'US:NYSE:TQC', T(NOW - HOUR), T(NOW)).state == 'source_failed'
+    run = conn.execute('SELECT status, finished_at, error FROM ingest_run').fetchone()
+    assert run['status'] == 'partial' and run['finished_at'] and 'invalid JSON' in run['error']
+    assert report.checks['US:NASDAQ:TDCA'][0] == 'ok'                    # other CIKs unaffected
+
+
+def test_malformed_json_once_then_valid_is_ok(tmp_path):
+    conn = new_store(tmp_path)
+    clock = FakeClock()
+    http = FakeHttp({cik_url('5678'): [BadJson('{"cik": "56'), 'CIK0000005678.json']}, clock=clock)
+    assert _ingest(conn, http, clock).checks['US:NYSE:TQC'] == ('ok', None)
+
+
+def test_malformed_json_in_an_additional_file_leaves_its_period_incomplete(tmp_path):
+    conn = new_store(tmp_path)
+    since = NOW.replace(year=2025, month=10, day=1)
+    clock = FakeClock()
+    http = FakeHttp({FILE_URL.format(name='CIK0000004242-submissions-001.json'): [BadJson()]}, clock=clock)
+    report = _ingest(conn, http, clock, since=since)
+
+    status, note = report.checks['US:NYSE:TLH']
+    assert status == 'partial' and 'invalid JSON' in note and 'not covered: 2025-10-01T01:00:00Z..' in note
+    assert _cov(conn, 'US:NYSE:TLH', T(since), T(NOW)).state == 'coverage_incomplete'
+
+
+_DELETE = object()
+
+
+def _mutate(path, value):
+    def apply(doc):
+        target = doc
+        for k in path[:-1]:
+            target = target[k]
+        if value is _DELETE:
+            del target[path[-1]]
+        else:
+            target[path[-1]] = value
+        return doc
+    return apply
+
+
+INVALID_SHAPES = {
+    'not an object': lambda d: ['filings'],
+    'no filings': _mutate(('filings',), _DELETE),
+    'recent missing a column': _mutate(('filings', 'recent', 'filingDate'), _DELETE),
+    'column length mismatch': _mutate(('filings', 'recent', 'form'), ['10-Q']),
+    'bad filing date': _mutate(('filings', 'recent', 'filingDate'), ['2026-08-04', '05/01/2026']),
+    'acceptance without zone': _mutate(('filings', 'recent', 'acceptanceDateTime'),
+                                       ['2026-08-04T20:00:00', '2026-01-05T21:15:00.000Z']),
+    'bad accession number': _mutate(('filings', 'recent', 'accessionNumber'), ['../x', '0000004242-26-000001']),
+    'number where text expected': _mutate(('filings', 'recent', 'form'), [10, '8-K']),
+    'files not a list': _mutate(('filings', 'files'), {'name': 'x'}),
+    'file name outside the API': _mutate(('filings', 'files'), [
+        {'name': '../../Archives/x.json', 'filingFrom': '2025-06-01', 'filingTo': '2026-01-05'}]),
+    'file without dates': _mutate(('filings', 'files'), [{'name': 'CIK0000004242-submissions-001.json'}]),
+    'another company': _mutate(('cik',), '9999'),
+}
+
+
+@pytest.mark.parametrize('case', sorted(INVALID_SHAPES))
+def test_invalid_submissions_shape_is_a_recorded_failure(tmp_path, case):
+    conn = new_store(tmp_path)
+    clock = FakeClock()
+    doc = INVALID_SHAPES[case](copy.deepcopy(fixture('CIK0000004242.json')))
+    http = FakeHttp({cik_url('4242'): [doc]}, clock=clock)
+    report = _ingest(conn, http, clock, since=NOW.replace(year=2025, month=10, day=1))
+
+    status, error = report.checks['US:NYSE:TLH']
+    assert status == 'failed' and 'CIK0000004242 submissions' in error
+    assert http.calls.count(cik_url('4242')) == 1                        # a shape error is not retried
+    assert FILE_URL.format(name='CIK0000004242-submissions-001.json') not in http.calls
+    assert conn.execute('SELECT COUNT(*) FROM event WHERE security_id = ?',
+                        (sid(conn, 'US:NYSE:TLH'),)).fetchone()[0] == 0
+    assert conn.execute('SELECT finished_at FROM ingest_run').fetchone()[0] is not None
+
+
+def test_invalid_additional_file_shape_leaves_its_period_incomplete(tmp_path):
+    conn = new_store(tmp_path)
+    older = fixture('CIK0000004242-submissions-001.json')
+    older['filingDate'] = older['filingDate'][:-1]                       # one value short
+    clock = FakeClock()
+    http = FakeHttp({FILE_URL.format(name='CIK0000004242-submissions-001.json'): [older]}, clock=clock)
+    report = _ingest(conn, http, clock, since=NOW.replace(year=2025, month=10, day=1))
+    status, note = report.checks['US:NYSE:TLH']
+    assert status == 'partial' and 'column filingDate has' in note
+
+
+def test_unusual_primary_document_links_to_the_filing_index(tmp_path):
+    conn = new_store(tmp_path)
+    doc = copy.deepcopy(fixture('CIK0000001234.json'))
+    doc['filings']['recent']['primaryDocument'] = ['../../evil.htm' for _ in doc['filings']['recent']['form']]
+    clock = FakeClock()
+    _ingest(conn, FakeHttp({cik_url('1234'): [doc]}, clock=clock), clock)
+    urls = [r[0] for r in conn.execute('SELECT url FROM source_document')]
+    assert urls and all(u.endswith('-index.htm') and '..' not in u for u in urls)
+
+
+def test_real_primary_document_shapes_are_kept():
+    assert _DOCUMENT.fullmatch('xslF345X05/wk-form4_1758650400.xml')     # Form 4 rendering path
+    assert _DOCUMENT.fullmatch('aapl-20260627.htm')
+    assert not _DOCUMENT.fullmatch('../x.htm') and not _DOCUMENT.fullmatch('a/../../b')
+
+
+def test_unexpected_error_mid_run_still_closes_the_run(tmp_path, monkeypatch):
+    conn = new_store(tmp_path)
+    real, calls = sec_submissions._record_cik, []
+
+    def fail_on_second_cik(*args, **kwargs):
+        calls.append(1)
+        if len(calls) == 2:
+            raise RuntimeError('disk full')
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(sec_submissions, '_record_cik', fail_on_second_cik)
+    clock = FakeClock()
+    with pytest.raises(RuntimeError):
+        _ingest(conn, FakeHttp(clock=clock), clock)
+    run = conn.execute('SELECT status, finished_at, error FROM ingest_run').fetchone()
+    assert run['status'] == 'failed' and run['finished_at'] and 'disk full' in run['error']

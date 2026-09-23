@@ -4,6 +4,8 @@ import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+import requests
+
 from src.core.calendar import load_calendars
 from src.core.identity import load_watchlist, parse_watchlist
 from src.sources.sec_submissions import FILE_URL, SUBMISSIONS_URL
@@ -57,7 +59,16 @@ class FakeResponse:
         self._payload = payload
 
     def json(self):
+        if isinstance(self._payload, BadJson):
+            raise requests.exceptions.JSONDecodeError('Expecting value', self._payload.body, 0)
         return self._payload
+
+
+class BadJson:
+    """A FakeHttp outcome: HTTP 200 whose body is not JSON (e.g. an HTML error page or a truncation)."""
+
+    def __init__(self, body='<html>Request Rate Threshold Exceeded</html>'):
+        self.body = body
 
 
 class FakeClock:
@@ -109,7 +120,7 @@ class FakeHttp:
             raise outcome
         if isinstance(outcome, int):
             return FakeResponse(outcome)
-        if isinstance(outcome, dict):
+        if not isinstance(outcome, str):                 # a payload: dict, list, BadJson, ...
             return FakeResponse(200, outcome)
         return FakeResponse(200, json.loads((SEC_FIXTURES / outcome).read_text(encoding='utf-8')))
 

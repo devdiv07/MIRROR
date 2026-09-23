@@ -14,6 +14,10 @@ Coverage of a fetch at time F (ADR §4.2, "SEC fetch coverage and backfill"):
 A check is 'ok' only if that union contains the whole window, otherwise 'partial' with a
 scope_note naming what is missing. Additional files are fetched only when the window needs them.
 
+Responses are validated before use (_parse_submissions, _filing_rows). Invalid JSON is retried like
+a 5xx; a response of the wrong shape is an InvalidResponse. Either way the request counts as failed:
+a bad submissions JSON fails the listing's check, a bad additional file leaves its period missing.
+
 HTTP (SecClient): the User-Agent comes from SEC_USER_AGENT, which must be set (there is no
 built-in contact); timeout 30 s; at most 3 attempts per request, retrying 429/5xx/timeouts/
 connection errors after 1 s then 2 s, no retry on other 4xx. One rate limit covers every request
@@ -25,6 +29,7 @@ starts of any two requests (SEC's stated limit is 10 requests/second).
 from __future__ import annotations
 
 import os
+import re
 import time
 from dataclasses import dataclass, field
 from datetime import date, datetime, time as dtime, timedelta, timezone
@@ -50,6 +55,10 @@ _BEGINNING = '0001-01-01T00:00:00Z'
 
 class FetchError(Exception):
     """A request failed after retries, or with a non-retryable status."""
+
+
+class InvalidResponse(FetchError):
+    """A 200 response whose JSON is not the shape this adapter relies on."""
 
 
 class MissingUserAgent(ValueError):
@@ -97,10 +106,14 @@ class SecClient:
                 last = f'{type(e).__name__}: {e}'
             else:
                 if resp.status_code == 200:
-                    return resp.json()
-                last = f'HTTP {resp.status_code}'
-                if resp.status_code != 429 and resp.status_code < 500:
-                    raise FetchError(f'{url}: {last} (not retried)')
+                    try:
+                        return resp.json()
+                    except ValueError as e:              # truncated or non-JSON body: retried
+                        last = f'invalid JSON ({e})'
+                else:
+                    last = f'HTTP {resp.status_code}'
+                    if resp.status_code != 429 and resp.status_code < 500:
+                        raise FetchError(f'{url}: {last} (not retried)')
             if attempt < len(RETRY_WAITS):
                 self._sleep(RETRY_WAITS[attempt])
         raise FetchError(f'{url}: {last} after {len(RETRY_WAITS) + 1} attempts')
@@ -110,10 +123,68 @@ def _et_midnight(d: date) -> str:
     return db.utc_iso(datetime.combine(d, dtime(0, 0), tzinfo=_ET))
 
 
-def _rows(columns: dict) -> list[dict]:
-    """SEC's columnar arrays -> one dict per filing."""
-    n = len(columns.get('accessionNumber', []))
-    return [{k: v[i] for k, v in columns.items() if isinstance(v, list) and len(v) == n} for i in range(n)]
+_REQUIRED_COLUMNS = ('accessionNumber', 'filingDate', 'form')
+_OPTIONAL_COLUMNS = ('acceptanceDateTime', 'reportDate', 'items', 'primaryDocument', 'primaryDocDescription')
+_ACCESSION = re.compile(r'\d{10}-\d{2}-\d{6}')
+_ACCEPTANCE = re.compile(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z')      # UTC (ADR §14 Q3)
+_FILE_NAME = re.compile(r'CIK\d{10}-submissions-\d{3}\.json')
+_DOCUMENT = re.compile(r'\w[\w.-]*(/\w[\w.-]*)?', re.ASCII)              # e.g. xslF345X05/doc4.xml
+
+
+def _iso_date(value, where: str) -> date:
+    try:
+        return date.fromisoformat(value)
+    except (TypeError, ValueError):
+        raise InvalidResponse(f'{where}: {value!r} is not a YYYY-MM-DD date') from None
+
+
+def _filing_rows(columns, where: str) -> list[dict]:
+    """SEC's columnar arrays -> one dict per filing, or InvalidResponse if any column or value is off.
+
+    One bad row rejects the whole response: MIRROR does not record coverage from a document it
+    could only partly read.
+    """
+    if not isinstance(columns, dict):
+        raise InvalidResponse(f'{where}: filings are not an object')
+    missing = [k for k in _REQUIRED_COLUMNS if not isinstance(columns.get(k), list)]
+    if missing:
+        raise InvalidResponse(f"{where}: missing column(s) {', '.join(missing)}")
+    n = len(columns['accessionNumber'])
+    present = [k for k in _REQUIRED_COLUMNS + _OPTIONAL_COLUMNS if columns.get(k) is not None]
+    for k in present:
+        if not isinstance(columns[k], list) or len(columns[k]) != n:
+            size = len(columns[k]) if isinstance(columns[k], list) else type(columns[k]).__name__
+            raise InvalidResponse(f'{where}: column {k} has {size} values, expected {n}')
+    rows = [{k: columns[k][i] for k in present} for i in range(n)]
+    for r in rows:
+        acc = r['accessionNumber']
+        if not all(isinstance(v, str) for v in r.values()):
+            raise InvalidResponse(f'{where}: non-text value in filing {acc!r}')
+        if not _ACCESSION.fullmatch(acc):
+            raise InvalidResponse(f'{where}: bad accession number {acc!r}')
+        _iso_date(r['filingDate'], where)
+        if r.get('acceptanceDateTime') and not _ACCEPTANCE.fullmatch(r['acceptanceDateTime']):
+            raise InvalidResponse(f"{where}: acceptanceDateTime {r['acceptanceDateTime']!r} is not UTC ISO 8601")
+    return rows
+
+
+def _parse_submissions(doc, cik: str) -> tuple[list[dict], list[dict]]:
+    """Validate a submissions JSON. Returns (recent filings, additional-file entries)."""
+    where = f'CIK{cik} submissions'
+    if not isinstance(doc, dict) or not isinstance(doc.get('filings'), dict):
+        raise InvalidResponse(f'{where}: no filings object')
+    if 'cik' in doc and str(doc['cik']).lstrip('0') != cik.lstrip('0'):
+        raise InvalidResponse(f"{where}: response is for CIK {doc['cik']!r}")
+    recent = _filing_rows(doc['filings'].get('recent'), f'{where} recent')
+    files = doc['filings'].get('files') or []
+    if not isinstance(files, list):
+        raise InvalidResponse(f'{where}: files is not a list')
+    for f in files:
+        if not isinstance(f, dict) or not _FILE_NAME.fullmatch(str(f.get('name'))):
+            raise InvalidResponse(f'{where}: bad additional-file entry {f!r}')
+        if _iso_date(f.get('filingFrom'), where) > _iso_date(f.get('filingTo'), where):
+            raise InvalidResponse(f"{where}: {f['name']} has filingFrom after filingTo")
+    return recent, files
 
 
 def _published(filing: dict) -> tuple[str, str]:
@@ -137,13 +208,10 @@ class _CikFetch:
 def _fetch_cik(client: SecClient, cik: str, earliest_start: str, fetched_at: str) -> _CikFetch:
     out = _CikFetch()
     try:
-        doc = client.fetch_json(SUBMISSIONS_URL.format(cik=cik))
+        recent, files = _parse_submissions(client.fetch_json(SUBMISSIONS_URL.format(cik=cik)), cik)
     except FetchError as e:
         out.error = str(e)
         return out
-    filings = doc.get('filings', {})
-    recent = _rows(filings.get('recent', {}))
-    files = filings.get('files', []) or []
     out.filings.extend(recent)
     if not files:
         out.covered.append((_BEGINNING, fetched_at))
@@ -159,11 +227,11 @@ def _fetch_cik(client: SecClient, cik: str, earliest_start: str, fetched_at: str
         if hi <= earliest_start or lo >= recent_from:
             continue                                 # not needed for this window
         try:
-            extra = client.fetch_json(FILE_URL.format(name=f['name']))
+            extra = _filing_rows(client.fetch_json(FILE_URL.format(name=f['name'])), f['name'])
         except FetchError as e:
             out.missing.append(f"{f['filingFrom']}..{f['filingTo']} in {f['name']} not fetched ({e})")
             continue
-        out.filings.extend(_rows(extra))
+        out.filings.extend(extra)
         out.covered.append((lo, hi))
     return out
 
@@ -208,16 +276,22 @@ def ingest_sec(conn, securities: list, *, now: datetime, since: datetime | None 
 
     report = SecReport(run_id, 'ok', 0, 0)
     statuses = []
-    for cik, group in sorted(by_cik.items()):
-        starts = {}
-        for s in group:
-            resume = db.last_covered_through(conn, s['security_id'], SOURCE)
-            start = db.utc_iso(since) if since else (resume or db.utc_iso(now - DEFAULT_LOOKBACK))
-            starts[s['security_id']] = min(start, fetched_at)
-        fetch = _fetch_cik(client, cik, min(starts.values()), fetched_at)
-        report.fetches += 1
-        with db.transaction(conn):
-            _record_cik(conn, group, starts, fetch, fetched_at, run_id, report, statuses)
+    try:
+        for cik, group in sorted(by_cik.items()):
+            starts = {}
+            for s in group:
+                resume = db.last_covered_through(conn, s['security_id'], SOURCE)
+                start = db.utc_iso(since) if since else (resume or db.utc_iso(now - DEFAULT_LOOKBACK))
+                starts[s['security_id']] = min(start, fetched_at)
+            fetch = _fetch_cik(client, cik, min(starts.values()), fetched_at)
+            report.fetches += 1
+            with db.transaction(conn):
+                _record_cik(conn, group, starts, fetch, fetched_at, run_id, report, statuses)
+    except BaseException as e:
+        # Never leave a run open. CIKs already committed stay recorded; the rest were not checked.
+        db.finish_ingest_run(conn, run_id, finished_at=fetched_at, status='failed',
+                             records_new=report.records_new, error=f'aborted: {type(e).__name__}: {e}')
+        raise
 
     if statuses and all(s == 'failed' for s in statuses):
         report.status = 'failed'
@@ -262,7 +336,9 @@ def _store_filings(conn, security, filings: list[dict], start: str, fetched_at: 
         if not (start < published_at <= fetched_at):
             continue
         accession = f['accessionNumber']
-        document = f.get('primaryDocument') or f'{accession}-index.htm'
+        document = f.get('primaryDocument') or ''
+        if not _DOCUMENT.fullmatch(document):
+            document = f'{accession}-index.htm'          # the filing index always exists
         url = ARCHIVE_URL.format(cik=cik_int, accession_nodash=accession.replace('-', ''), document=document)
         fields = {k: f.get(k) for k in ('form', 'items', 'filingDate', 'reportDate', 'primaryDocument',
                                          'primaryDocDescription', 'acceptanceDateTime')}
