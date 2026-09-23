@@ -1,59 +1,71 @@
 # FOCUS — the one file to follow
 
-**Open this when you sit down. Ignore every other doc until the gate.**
-_Last set: June 21, 2026_
+**Open this when you sit down. One active outcome, one active task. Everything else waits.**
+_Last set: 2026-09-23. It replaces the June 21, 2026 focus ("get one real IC number"); that text is in git history at `e068c91`._
 
 ---
 
-## THE GOAL (until further notice)
+## THE ACTIVE OUTCOME
 
-> Prove — or disprove — that the insider conviction signal predicts forward returns.
-> **Get one real IC number.** Everything right now serves this.
+> The owner reads **one next-morning Markdown brief** for a **real 10–20 stock India/US watchlist**. Every line in it has a source link and a timestamp. For any stock that crossed its move trigger, it gives an **adjusted daily move** and an **evidence-labelled explanation**.
 
----
+Why this outcome: [PRODUCT.md](PRODUCT.md). How it is built: [adr/0001-watchlist-event-foundation.md](adr/0001-watchlist-event-foundation.md).
 
-## THE PATH (in order — don't skip, don't add)
-
-### Step 0 — Clean baseline _(today, ~1 hr)_
-- [ ] Commit the working tree (reorg deletions + untracked docs)
-- [ ] Fix README (run command = `python -m src.pipeline.run_scoring_pipeline`; real 8,013 / 31 numbers)
-- **Done when:** `git status` clean + README accurate. Never touch again.
-
-### Step 1 — Reproducible backtester _(the real work)_
-- [ ] Extract backtest from `Untitled-1.ipynb` → committed `src/backtest/backtester.py`
-- [ ] Compute Spearman **IC** per horizon (5d, 20d) + hit rate
-- [ ] Collapse duplicate ticker-date rows so n is honest
-- [ ] Write the honest result into `docs/backtest_results.md`
-- **Done when:** `python -m src.backtest.backtester` prints an IC number.
-
-### Step 2 — Buy-side data
-- [ ] Expand universe / lookback to get enough insider **buys**
-- [ ] Re-run the backtester
-- **Done when:** backtest has real buy AND sell buckets.
+The product **does not wait for an insider IC result**. The insider score is a separate research track (see below). Its output never appears in the brief.
 
 ---
 
-## 🛑 THE GATE — this is "until what"
+## THE SLICE (in order; the first unchecked step is the active task)
 
-Read the IC. Make one decision:
+### Step 0 — Architecture baseline _(open as a draft PR; not merged)_
+- [ ] PRODUCT.md, ADR 0001, this file, INDEX.md and README.md describe the real code state and the new direction
+- **Done when:** the PR has been reviewed and merged by the owner.
 
-- **IC > 0.05, holds on both sides** → signal is real → reconnect insider leg → dissonance brain, continue the vision roadmap.
-- **IC ≈ 0 / one-sided / contradictory** → not proven → diagnose the moderate-bucket inversion, re-tune, re-run. **Do not proceed.**
+### Step 1 — Store + identity + watchlist
+- [ ] `src/store/schema.sql` + `db.py` (ADR §6), `src/core/identity.py`, `config/watchlist.example.yaml`
+- [ ] `src/core/calendar.py` + `config/exchanges.yaml` + holiday files, each citing its primary source
+- **Done when:** loading a watchlist of 1 NSE and 1 US security twice gives identical rows, and a test proves it.
 
-The path stops here until you have a verdict.
+### Step 2 — Events with provenance
+- [ ] `src/sources/sec_submissions.py`, which keeps `acceptanceDateTime`, tested on a recorded JSON fixture (no network in tests)
+- [ ] `src/sources/manual_events.py` for owner-entered NSE disclosures
+- **Done when:** re-ingesting a fixture is a no-op (duplicate test), a changed hash creates version 2, and the as-of guard (ADR case R1) passes.
+
+### Step 3 — Prices, actions, moves
+- [ ] `src/sources/prices_csv.py`, `src/sources/corporate_actions.py`, `src/compute/moves.py`
+- **Done when:** ADR acceptance cases **A3** (split/bonus), **A5** (stale price) and the unrecorded-action guard pass. Every number is recomputed in tests.
+
+### Step 4 — Timing + evidence labels
+- [ ] `src/compute/timing.py`, `src/explain/evidence.py`
+- **Done when:** ADR cases **A1** (pre-open result), **A2** (post-move filing), **A4** (unexplained +10%) and **R2** (market-wide move) pass.
+
+### Step 5 — Brief + feedback
+- [ ] `src/brief/render_markdown.py`, `src/cli.py` (ingest / compute / brief / feedback / thesis)
+- **Done when:** ADR case **A6** (source outage visible) passes, and one manual run on the real watchlist produces a brief in which every line has a working link and timestamps. The owner records what was observed in the PR.
+
+Steps 1–5 together are the **first implementation PR** (ADR §13). Split them if review gets heavy, but never merge a step without its tests.
+
+### Step 6 — Pilot _(4+ weeks)_
+- [ ] Use the brief daily and record feedback through the CLI
+- **Done when:** the pilot measures in [PRODUCT.md](PRODUCT.md#pilot-and-measurable-feedback) have a week-1 baseline and a week-4 reading.
 
 ---
 
-## IGNORE until the gate (anti-roaming)
+## DO NOT START (until Step 5 is merged)
 
-- API · dashboard · database · Docker · optimizer
-- Layers 1, 2, 4, 5 · the Daily Brief
-- Rebuilding media / options legs
-- Writing more planning docs (planning is done)
-- Re-doing hardening (already done)
+- Web UI · API · Docker · PostgreSQL · queues · deployment
+- NSE/BSE scraping or polling (their terms prohibit it; see ADR §4)
+- Choosing or paying for a price or news vendor (ADR open questions Q1/Q2 first)
+- LLM-written explanations or any LLM-produced number
+- Macro, news, intraday alerts
+- Layers 1, 2, 4, 5 of the original vision
 
-**Rules:** one branch · small commits · tests green · no new deps without a reason.
+## Parked research track — insider signal
+
+This track does not run in parallel with the slice. When it resumes, it starts with the **verified defects** in [ADR §12](adr/0001-watchlist-event-foundation.md#12-separate-track-insider-signal-research-blockers): code F counted as SELL, a direction/penalty sign error, cluster look-ahead, and current market cap on historical trades. The fixes come in the order T1–T6 listed there. Only then does it move to the reproducible backtester and IC (T7). Existing scores are unvalidated and must not be relabelled as signals.
+
+**Rules:** one active task · one branch · small commits · tests green · no new dependencies without a written reason · no claim without evidence.
 
 ---
 
-_Lost? [INDEX.md](INDEX.md) maps every doc. Reference (don't live in these): [layer3_current_state.md](layer3_current_state.md) for the why · [mirror_vision_roadmap.md](mirror_vision_roadmap.md) for the whole-project map._
+_Lost? [INDEX.md](INDEX.md) maps every doc._
