@@ -1,0 +1,19 @@
+{
+  "cik": "4242",
+  "name": "TEST LONG HISTORY CO",
+  "filings": {
+    "recent": {
+      "accessionNumber":       ["0000004242-26-000005", "0000004242-26-000001"],
+      "filingDate":            ["2026-08-04", "2026-01-05"],
+      "reportDate":            ["2026-06-30", "2025-12-31"],
+      "acceptanceDateTime":    ["2026-08-04T20:00:00.000Z", "2026-01-05T21:15:00.000Z"],
+      "form":                  ["10-Q", "8-K"],
+      "items":                 ["", "8.01"],
+      "primaryDocument":       ["tlh-20260630.htm", "tlh-8k.htm"],
+      "primaryDocDescription": ["10-Q", "8-K"]
+    },
+    "files": [
+      {"name": "CIK0000004242-submissions-001.json", "filingCount": 1, "filingFrom": "2025-06-01", "filingTo": "2026-01-05"}
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "cik": "5678",
+  "name": "TEST QUIET CORP",
+  "filings": {
+    "recent": {
+      "accessionNumber":       ["0000005678-26-000010"],
+      "filingDate":            ["2026-08-03"],
+      "reportDate":            ["2026-06-30"],
+      "acceptanceDateTime":    ["2026-08-03T20:05:00.000Z"],
+      "form":                  ["10-Q"],
+      "items":                 [""],
+      "primaryDocument":       ["tqc-20260630.htm"],
+      "primaryDocDescription": ["10-Q"]
+    },
+    "files": []
+  }
+}
