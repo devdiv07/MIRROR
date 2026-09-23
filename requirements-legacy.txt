@@ -1,0 +1,10 @@
+# Legacy prototype dependencies — only needed to run legacy/ and the root NEWS_SENTIMENT.PY
+# Install with: pip install -r requirements-legacy.txt
+#
+# Kept out of requirements.txt so CI's `pip-audit --strict` audits only what src/ and tests/ use.
+# textblob depends on nltk, which has an advisory with no fixed release at the time of the split:
+# PYSEC-2026-3740 / CVE-2026-81726 / GHSA-8mgp-746c-j5xp (NLTK model-file path sandbox bypass).
+# Re-check with `pip-audit -r requirements-legacy.txt` before running legacy code.
+-r requirements.txt
+
+textblob==0.20.0
