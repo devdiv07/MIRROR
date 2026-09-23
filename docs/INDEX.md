@@ -12,7 +12,7 @@ _Last organized: 2026-09-23. The active direction changed from "insider IC first
 |---|---|
 | What am I building **right now**? | [FOCUS.md](FOCUS.md) |
 | What is MIRROR **for**, and what is out of scope? | [PRODUCT.md](PRODUCT.md) |
-| How is the **next code** designed (data model, provenance, sources, acceptance tests)? | [adr/0001-watchlist-event-foundation.md](adr/0001-watchlist-event-foundation.md) |
+| How is the **next code** designed (data model, provenance, coverage states, sources, PR plan, acceptance tests)? | [adr/0001-watchlist-event-foundation.md](adr/0001-watchlist-event-foundation.md) |
 | Which **insider-signal defects** are verified, and how will they be fixed? | [ADR 0001 §12](adr/0001-watchlist-event-foundation.md#12-separate-track-insider-signal-research-blockers) |
 | How is the **existing** insider code structured? | [architecture.md](architecture.md) |
 | Where did the insider research stand in June 2026? | [layer3_current_state.md](layer3_current_state.md) 🧪 |
@@ -29,7 +29,7 @@ Legend: ✅ current · ⚠️ accurate for what it covers, with a noted caveat �
 |---|---|---|---|
 | 1 | [FOCUS.md](FOCUS.md) | The one active outcome, the ordered slice, the do-not-start list | ✅ |
 | 2 | [PRODUCT.md](PRODUCT.md) | Product brief: user journey, brief and move card, India/US scope, pilot measures | ✅ |
-| 3 | [adr/0001-watchlist-event-foundation.md](adr/0001-watchlist-event-foundation.md) | Architecture decision: modules, provenance, data model, sources, acceptance matrix, insider blockers | ✅ (Proposed) |
+| 3 | [adr/0001-watchlist-event-foundation.md](adr/0001-watchlist-event-foundation.md) | Architecture decision: modules, provenance (filing vs price claims), coverage states, data model, sources and the India source investigation, acceptance matrix, PR-0–PR-4 plan, insider blockers | ✅ (Proposed) |
 | 4 | [README.md](../README.md) | Code status, run and test commands | ✅ |
 | 5 | [architecture.md](architecture.md) | How the **existing** insider and legacy pipelines are built (June 2026). It describes the insider aggregation as intended; the actual sign behaviour is in ADR §12 (B1) | ⚠️ existing code only |
 | 6 | [contributing.md](../contributing.md) | Setup, coding standards, PR flow | ✅ |

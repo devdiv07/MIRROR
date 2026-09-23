@@ -7,9 +7,15 @@ _Last set: 2026-09-23. It replaces the June 21, 2026 focus ("get one real IC num
 
 ## THE ACTIVE OUTCOME
 
-> The owner reads **one next-morning Markdown brief** for a **real 10–20 stock India/US watchlist**. Every line in it has a source link and a timestamp. For any stock that crossed its move trigger, it gives an **adjusted daily move** and an **evidence-labelled explanation**.
+> The owner reads **one next-morning Markdown brief** for a **real 10–20 stock India/US watchlist**. It shows:
+> - **filing claims**, each with a source link and a publication time;
+> - **price numbers**, each with its import, file hash and calculation trace;
+> - a **coverage state** for every stock and source: checked with no events, not checked, source failed, or coverage incomplete;
+> - for any stock that crossed its move trigger, an **adjusted daily move** and an **evidence-labelled explanation**.
 
 Why this outcome: [PRODUCT.md](PRODUCT.md). How it is built: [adr/0001-watchlist-event-foundation.md](adr/0001-watchlist-event-foundation.md).
+
+This outcome proves that the pipeline works on real data. It does **not** prove time saved. That is measured afterwards, and only where coverage is measurable (Step 6).
 
 The product **does not wait for an insider IC result**. The insider score is a separate research track (see below). Its output never appears in the brief.
 
@@ -17,45 +23,44 @@ The product **does not wait for an insider IC result**. The insider score is a s
 
 ## THE SLICE (in order; the first unchecked step is the active task)
 
-### Step 0 — Architecture baseline _(open as a draft PR; not merged)_
-- [ ] PRODUCT.md, ADR 0001, this file, INDEX.md and README.md describe the real code state and the new direction
-- **Done when:** the PR has been reviewed and merged by the owner.
+Each step is **one PR**, merged only when CI is green and its named ADR cases pass (ADR §13).
 
-### Step 1 — Store + identity + watchlist
-- [ ] **First, make CI green.** It has failed at `pyflakes` on `main` since `e068c91`, so pytest never runs in CI. Separate lint-only PR, no behaviour change, and do not remove the lint step.
-- [ ] `src/store/schema.sql` + `db.py` (ADR §6), `src/core/identity.py`, `config/watchlist.example.yaml`
-- [ ] `src/core/calendar.py` + `config/exchanges.yaml` + holiday files, each citing its primary source
-- **Done when:** loading a watchlist of 1 NSE and 1 US security twice gives identical rows, and a test proves it.
+### Step 0 — PR-0: make CI green _(ACTIVE)_
+- [ ] Fix the 44 existing pyflakes findings without changing behaviour. Keep the scorer-registration imports (list them in `__all__`; pyflakes ignores `# noqa`). Do not remove or skip the lint step.
+- **Done when:** CI on `main` is green **and** its pytest and pip-audit steps actually ran, with their results reported in the PR.
 
-### Step 2 — Events with provenance
-- [ ] `src/sources/sec_submissions.py`, which keeps `acceptanceDateTime`, tested on a recorded JSON fixture (no network in tests)
-- [ ] `src/sources/manual_events.py` for owner-entered NSE disclosures
-- **Done when:** re-ingesting a fixture is a no-op (duplicate test), a changed hash creates version 2, and the as-of guard (ADR case R1) passes.
+### Step 1 — Merge the architecture baseline (PR #1)
+- [ ] Rebase PR #1 on the fixed `main`, let CI run, and address review
+- **Done when:** CI is green on PR #1 and the owner merges it. It must not merge before Step 0.
 
-### Step 3 — Prices, actions, moves
-- [ ] `src/sources/prices_csv.py`, `src/sources/corporate_actions.py`, `src/compute/moves.py`
-- **Done when:** ADR acceptance cases **A3** (split/bonus), **A5** (stale price) and the unrecorded-action guard pass. Every number is recomputed in tests.
+### Step 2 — PR-1: store, identity, calendar config
+- [ ] `src/store/schema.sql` + `db.py` (ADR §6, including `price_import` and `coverage_check`), `src/core/identity.py`, `src/core/calendar.py`, `config/watchlist.example.yaml`, `config/exchanges.yaml`, holiday files that cite their primary sources
+- **Done when:** loading a 1 NSE + 1 US watchlist twice gives identical rows, symbol-change and calendar tests pass, and CI is green.
 
-### Step 4 — Timing + evidence labels
-- [ ] `src/compute/timing.py`, `src/explain/evidence.py`
-- **Done when:** ADR cases **A1** (pre-open result), **A2** (post-move filing), **A4** (unexplained +10%) and **R2** (market-wide move) pass.
+### Step 3 — PR-2: event foundation and coverage
+- [ ] SEC submissions adapter (keeps `acceptanceDateTime`; fixture-tested, no network), manual NSE events, the `checked` CLI command, the coverage states, and a plain-text `events` listing
+- **Done when:** ADR cases **C1** (not checked) and **C2** (checked, no events) pass, along with C3–C5, **R1** (as-of guard), A6 (failure state), and the duplicate and versioning tests.
 
-### Step 5 — Brief + feedback
-- [ ] `src/brief/render_markdown.py`, `src/cli.py` (ingest / compute / brief / feedback / thesis)
-- **Done when:** ADR case **A6** (source outage visible) passes, and one manual run on the real watchlist produces a brief in which every line has a working link and timestamps. The owner records what was observed in the PR.
+### Step 4 — PR-3: prices, corporate actions, moves
+- [ ] Price CSV import with `price_import` provenance, corporate actions, `src/compute/moves.py`
+- **Done when:** ADR cases **A3** (split/bonus), **A5** (stale price), **P1** (unknown upstream shown as unknown), **P2** (no bare numbers) and the unrecorded-action guard pass.
 
-Steps 1–5 together are the **first implementation PR** (ADR §13). Split them if review gets heavy, but never merge a step without its tests.
+### Step 5 — PR-4: timing, evidence labels, brief, feedback
+- [ ] `timing.py`, `evidence.py`, `render_markdown.py`, and the `compute`, `brief`, `feedback` and `thesis` CLI commands
+- [ ] **Gate before merging:** ADR 0002 (India sourcing, ADR §4.3) is written, even if its answer is "unresolved". The NSE correspondence can run during Steps 2–4, because it is mostly waiting on replies.
+- **Done when:** ADR cases **A1**, **A2**, **A4**, **A4b** (unexplained move with incomplete coverage shows the banner), **R2** and A6 (render) pass. A golden brief test passes. One manual run on the real watchlist is reported in the PR: counts per coverage group, provenance failures, and the upstream price source shown.
 
 ### Step 6 — Pilot _(4+ weeks)_
-- [ ] Use the brief daily and record feedback through the CLI
-- **Done when:** the pilot measures in [PRODUCT.md](PRODUCT.md#pilot-and-measurable-feedback) have a week-1 baseline and a week-4 reading.
+- [ ] **US:** use the brief daily and record feedback and time spent through the CLI
+- [ ] **India:** keep running it as a prototype. It joins the time-saving measurement only after ADR 0002 establishes a route whose coverage is measurable without relying on the owner's own entry.
+- **Done when:** the pilot measures in [PRODUCT.md](PRODUCT.md#pilot-and-measurable-feedback) have a week-1 baseline and a week-4 reading. Report them as measured. No time saving is claimed without them.
 
 ---
 
 ## DO NOT START (until Step 5 is merged)
 
 - Web UI · API · Docker · PostgreSQL · queues · deployment
-- NSE/BSE scraping or polling (their terms prohibit it; see ADR §4)
+- Scraping NSE/BSE pages. Polling NSE RSS or buying a feed only after ADR 0002 records permission and cost.
 - Choosing or paying for a price or news vendor (ADR open questions Q1/Q2 first)
 - LLM-written explanations or any LLM-produced number
 - Macro, news, intraday alerts
@@ -65,7 +70,7 @@ Steps 1–5 together are the **first implementation PR** (ADR §13). Split them 
 
 This track does not run in parallel with the slice. When it resumes, it starts with the **verified defects** in [ADR §12](adr/0001-watchlist-event-foundation.md#12-separate-track-insider-signal-research-blockers): code F counted as SELL, a direction/penalty sign error, cluster look-ahead, and current market cap on historical trades. The fixes come in the order T1–T6 listed there. Only then does it move to the reproducible backtester and IC (T7). Existing scores are unvalidated and must not be relabelled as signals.
 
-**Rules:** one active task · one branch · small commits · tests green · no new dependencies without a written reason · no claim without evidence.
+**Rules:** one active task · one branch per PR · small commits · CI green before merge · no new dependencies without a written reason · no claim without evidence.
 
 ---
 

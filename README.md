@@ -2,7 +2,7 @@
 
 **Intended product:** a personal, source-linked research assistant for a watchlist of India and US stocks. Each morning it says which material company events happened, why a watched stock made a large move (with dated evidence and what is still unknown), and how new facts bear on the owner's saved thesis. It makes no buy/sell calls and no claims of improved returns. → [docs/PRODUCT.md](docs/PRODUCT.md)
 
-> **Status (2026-09-23): the watchlist product is not built yet.** The design is proposed in [docs/adr/0001-watchlist-event-foundation.md](docs/adr/0001-watchlist-event-foundation.md), and the active task is in [docs/FOCUS.md](docs/FOCUS.md). There is **no India coverage** in the code today.
+> **Status (2026-09-23): the watchlist product is not built yet.** The design is proposed in [docs/adr/0001-watchlist-event-foundation.md](docs/adr/0001-watchlist-event-foundation.md), and the active task is in [docs/FOCUS.md](docs/FOCUS.md). There is **no India coverage** in the code today. India will start as a manual-entry prototype, with its coverage shown explicitly. Automation depends on a sourcing decision that has not yet been made (ADR §4.3).
 
 ## What the code does today
 
@@ -10,7 +10,7 @@
 |---|---|---|---|
 | Insider conviction research pipeline (US) | `src/` | SEC Form 4 fetch → parse → enrich → 7 weighted scorers → `results/insider_signals_phase2.csv` | **Research only. Unvalidated, with verified defects** (sign/penalty error, Form 4 code F counted as a sale, cluster look-ahead, current market cap on historical trades). See [ADR §12](docs/adr/0001-watchlist-event-foundation.md#12-separate-track-insider-signal-research-blockers). Do not use its scores as signals. |
 | Legacy dissonance prototype | `legacy/` | News sentiment + options/price signals + a dissonance score over 10 hard-coded US mega-caps | Prototype. It does **not** use the `src/` insider scores, and `legacy/run_mirror.py` calls `SEC_INSIDER.PY`, which is not in the repository. |
-| Watchlist research product | — | Watchlist, dated events, adjusted moves, evidence-labelled explanations, daily brief | **Planned** ([FOCUS.md](docs/FOCUS.md) steps 1–5) |
+| Watchlist research product | — | Watchlist, dated events, adjusted moves, evidence-labelled explanations, daily brief | **Planned** as four PRs after the CI repair ([FOCUS.md](docs/FOCUS.md) steps 2–5) |
 
 The earlier 5-layer vision and the insider-IC roadmap remain available as dated research direction. See [docs/INDEX.md](docs/INDEX.md).
 
@@ -25,7 +25,7 @@ pip install -r requirements-dev.txt     # includes requirements.txt
 python -m pytest tests/ -v
 ```
 
-Last observed result: **31 passed, 2 warnings** (2026-09-23, Windows 11, Python 3.13.5). The tests cover the insider parser, enrichment and scorers only. CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs `pyflakes src/ tests/`, then pytest, then `pip-audit --strict`. **CI is currently red.** It has failed at the pyflakes step on `main` since `e068c91` (unused imports and placeholder-free f-strings in existing code), so the pytest and pip-audit steps do not run in CI. Fixing that is the first item in [docs/FOCUS.md](docs/FOCUS.md) Step 1.
+Last observed result: **31 passed, 2 warnings** (2026-09-23, Windows 11, Python 3.13.5). The tests cover the insider parser, enrichment and scorers only. CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs `pyflakes src/ tests/`, then pytest, then `pip-audit --strict`. **CI is currently red.** It has failed at the pyflakes step on `main` since `e068c91` (unused imports and placeholder-free f-strings in existing code), so the pytest and pip-audit steps do not run in CI. Fixing that is the active task ([docs/FOCUS.md](docs/FOCUS.md) Step 0).
 
 ## Running the insider research pipeline (optional, research only)
 

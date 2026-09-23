@@ -25,11 +25,15 @@ MIRROR does not tell the owner what to buy or sell, does not predict prices, and
 ## Primary user journey (pilot)
 
 1. **Set up once.** The owner adds 10–20 stocks they already follow (NSE and US listings). For each they save a short **thesis** and a **horizon** (for example "margin recovery as input costs fall — 2–3 years"). They can also set a **move trigger** per stock; otherwise a global one applies.
-2. **Each morning.** The owner opens `briefs/YYYY-MM-DD.md` (≈5–10 minutes). It contains:
+2. **Each morning.** The owner opens `briefs/YYYY-MM-DD.md`. How long it takes to read is one of the pilot measures, not an assumption. It contains:
    - A header with when the data was last refreshed from each source, and any source that failed.
    - **What changed:** new official disclosures per stock since the last brief, each with a link and its publication time.
    - **Unusual-move cards** for stocks that crossed their trigger.
-   - One line listing stocks with nothing new.
+   - **Coverage**, one group per state, so that silence never means "nothing happened":
+     - *Checked, no new disclosures*: the source was checked for the whole window and returned nothing.
+     - *Not checked*: no check covers the window. For NSE this means the owner has not recorded a manual check. Entering an event does not count as checking.
+     - *Source failed*: the source was tried and failed.
+     - *Coverage incomplete*: only part of the window, or part of the source, was checked.
 3. **Correct and record.** From the CLI, the owner marks items relevant or not relevant, flags a wrong attribution, reports a missed event, or updates a thesis. Everything is kept as history.
 4. **Decide.** The owner reads the linked primary documents and makes their own decision. MIRROR records nothing about trades.
 
@@ -38,7 +42,9 @@ MIRROR does not tell the owner what to buy or sell, does not predict prices, and
 ```
 <SYMBOL> (NSE) · session YYYY-MM-DD · +X.X% adjusted from previous close
 Market-relative: +Y.Y% vs <benchmark> · Volume: Z.Z× 20-session median
-Prices: <vendor>, retrieved <time IST>
+Prices: owner-supplied file <name> · sha256 <12 hex> · imported <time IST> · upstream source: <vendor | UNKNOWN>
+Trace: close(D) <x> vs close(D-1) <y> ÷ k=<k> · calc <version>
+Coverage: NSE checked through <time> (manual)
 
 Evidence label: DOCUMENTED EVENT (preceded the move; causation not established)
   • [pre-open 08:40 IST] "<verbatim NSE subject>" — <link> (entered <time>)
@@ -49,45 +55,60 @@ Your thesis (2–3 yrs): "<saved text>" → relevance: not yet assessed (your ca
 Missing: no intraday prices (order of disclosure vs move unknown); NSE covered by manual entry only
 ```
 
-There are four evidence labels: **documented event**, **multiple factors**, **plausible association**, and **no verified explanation yet**. The rules for each are in [ADR §8](adr/0001-watchlist-event-foundation.md#8-explanation-contract). A news article published near a move does not establish its cause. MIRROR never shows statements like "92% chance this caused the jump".
+There are five evidence labels:
+- **documented event**
+- **multiple factors**
+- **plausible association**
+- **no verified explanation yet**, used only when every required source was checked for the move window
+- **no evidence — coverage incomplete**, used when a source was not checked, failed, or was only partly checked
+
+When coverage is incomplete, the card's **first line** says so, whatever the label. The rules are in [ADR §8](adr/0001-watchlist-event-foundation.md#8-explanation-contract). A news article published near a move does not establish its cause. MIRROR never shows statements like "92% chance this caused the jump".
 
 ## Initial scope
 
 | | India | US |
 |---|---|---|
 | Listings | NSE equities on the owner's watchlist | NYSE/Nasdaq equities on the owner's watchlist |
-| Company disclosures | **Manual entry** by the owner from NSE announcements/results/corporate actions. NSE's terms prohibit automated collection ([NSE terms of use](https://www.nseindia.com/static/nse-terms-of-use)) | **Automatic** from the SEC EDGAR submissions API: 8-K, 10-Q, 10-K, Form 4. Free reuse is documented ([SEC webmaster FAQ](https://www.sec.gov/about/webmaster-frequently-asked-questions)) |
-| Prices | Daily bars imported from a CSV the owner supplies. **The source is not yet chosen** (ADR Q2) | Same |
+| Company disclosures | **Manual entry for now**, plus a manual "checked through" record. NSE's website terms prohibit systematic automated collection ([NSE terms of use](https://www.nseindia.com/static/nse-terms-of-use)). NSE also offers [RSS feeds](https://www.nseindia.com/static/rss-feed) and paid [data products](https://www.nseindia.com/static/nse-data-and-analytics), but whether either permits MIRROR's use is **unresolved**. A time-bounded source investigation ([ADR §4.3](adr/0001-watchlist-event-foundation.md#43-india-source-investigation-time-bounded-decides-india-automation)) decides it | **Automatic** from the SEC EDGAR submissions API: 8-K, 10-Q, 10-K, Form 4. Free reuse is documented ([SEC webmaster FAQ](https://www.sec.gov/about/webmaster-frequently-asked-questions)) |
+| Prices | Daily bars imported from a CSV the owner supplies. **The upstream source is not yet chosen** (ADR Q2). Until it is, cards show "upstream source: unknown" with the file hash and calculation trace | Same |
 | Corporate actions | Manual entry (splits, bonus issues, dividends, symbol changes) | Manual entry in slice 1 |
 | Macro | Not in slice 1; sources not yet verified | FRED in slice 2 (API key and attribution required: [FRED API terms](https://fred.stlouisfed.org/docs/api/terms_of_use.html)) |
 | Timezone / currency | Asia/Kolkata, INR | America/New_York, USD |
 
-MIRROR **does not currently have India coverage**. Everything in the India column is planned.
+MIRROR **does not currently have India coverage**. Everything in the India column is planned. With manual entry, India is a **data-model prototype**. It tests whether the event, coverage and move model works for Indian listings, but it cannot show that MIRROR saves research time, because the owner is doing the source-watching themselves.
 
 ## Out of scope (for the pilot)
 
 - Buy/sell recommendations, price targets, portfolio construction, position sizing, order placement.
 - Claims of improved returns, and any probability or confidence percentage without a validated model.
 - Intraday alerts. They would need a dependable, permitted real-time feed, and none has been identified.
-- Automated NSE/BSE scraping or polling. Redistribution of any exchange or vendor data.
+- Scraping NSE/BSE pages. Polling NSE RSS or buying a feed only happens after the source investigation records a permission (ADR §4.3). No redistribution of any exchange or vendor data.
 - A web UI, multi-user access, hosting, and paid feeds. Revisit after the pilot.
 - LLM-generated numbers. An LLM may later help with wording, only around numbers that were already computed.
 - Using the insider conviction score as a product signal.
 
 ## Pilot and measurable feedback
 
-The pilot runs on the owner's real watchlist of 10–20 stocks for at least 4 weeks. These are measured from the `feedback` table and brief files. Targets other than the hard gates are set **after** week 1 establishes a baseline. Nothing here is a claim about markets.
+A **time-saving pilot** runs only where event coverage is measured by the source, not by the owner's own entry:
+
+- **US pilot:** 10–20 of the owner's US stocks for at least 4 weeks, starting after the brief ships (ADR §13, PR-4). SEC coverage is recorded automatically.
+- **India:** runs alongside as a prototype. It joins the time-saving pilot only after the source investigation (ADR §4.3) establishes a route whose coverage is measurable without relying on the owner's own entry.
+
+The measures below come from the `feedback` table, the coverage records and the brief files. Targets other than the hard gates are set **after** week 1 establishes a baseline. Nothing here is a claim about markets, and nothing here claims time is saved until the measurements say so.
 
 | Measure | How it is computed | Hard gate? |
 |---|---|---|
-| Citation integrity | Share of brief lines with a working source link and a publication time | **Yes — 100%** |
+| Filing-claim provenance | Share of filing claims with a working source link, a publication time (and its basis) and a first-seen time | **Yes — 100%** |
+| Price-claim provenance | Share of price numbers with import identity, file hash, observation time and calculation trace. An unknown upstream source is allowed but must be shown as "unknown" | **Yes — 100%** |
+| Coverage honesty | Securities shown as "checked, no new disclosures" without a successful check spanning the window | **Yes — 0** |
 | Number reproducibility | Brief numbers recomputed from stored rows by tests | **Yes — 100%** |
 | As-of correctness | Brief items with `first_seen_at` after the brief's as-of time | **Yes — 0** |
 | Relevance precision | `relevant / (relevant + not_relevant)` over "What changed" items | Baseline in week 1 |
 | Missed events | Count of `missed_event` reports per week (the owner found something MIRROR did not show) | Baseline in week 1 |
 | Attribution errors | Count of `wrong_attribution` on move cards | Baseline; every case gets reviewed |
 | Duplicates | Repeated events in a brief | Target 0 |
-| Unexplained moves | Share of cards labelled "no verified explanation yet". Reported honestly; it is not a failure metric | Informational |
-| Time spent | Owner's self-reported minutes per brief, noted weekly | Informational |
+| Unexplained moves | Share of cards labelled "no verified explanation yet", reported separately from "no evidence — coverage incomplete". Reported honestly; it is not a failure metric | Informational |
+| Coverage | Per market and week: the share of (security, day) pairs in each of the four coverage states | Informational; decides when a market can join the time-saving pilot |
+| Time spent | Owner's self-reported minutes per brief, **plus** minutes spent on manual NSE entry and checks, noted weekly | Informational |
 
 **After the pilot:** keep going, change course, or stop, based on these numbers and the owner's judgement. Nothing about predictive performance can be concluded from the pilot.
