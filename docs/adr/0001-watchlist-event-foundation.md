@@ -31,6 +31,7 @@ What exists today:
 - **[code]** A legacy dissonance prototype in `legacy/` over 10 US mega-caps ([legacy/price_signal.py:8-9](../../legacy/price_signal.py)).
 - **[code]** No security master, no India coverage, no database, no event model, no price-move computation, no brief.
 - **[run]** `python -m pytest tests/ -v` → **31 passed, 2 warnings, exit 0**. The tests cover the insider parser, enrichment and scorers only.
+- **[run]** GitHub Actions CI fails at its first step (`pyflakes`) on `main` at the baseline, so pytest does not run in CI (§13 prerequisite).
 
 None of the existing code produces the product. The insider code is an experimental **research track** (§12). Its known defects do not block the product slice.
 
@@ -372,7 +373,7 @@ tests/test_asof.py, test_brief_render.py
 - `python -m pytest tests/ -v` passes: the existing 31 plus the new tests, with no network access (the SEC adapter is tested against a recorded JSON fixture).
 - Acceptance matrix A1–A6, R1, R2 are each a named test and pass.
 - One manual run on the owner's real watchlist produces `briefs/<date>.md` in which every line has a working source link and timestamps. This is a manual check, recorded in the PR description with what was observed.
-- `pyflakes src/ tests/` is clean (CI already runs it).
+- CI is green. **Prerequisite:** CI has been red on `main` since `e068c91`. `pyflakes src/ tests/` fails on existing code (unused imports, f-strings without placeholders), so the pytest and pip-audit steps have never run in CI **[run: GitHub Actions runs 27905872952 and 35853057284]**. A lint-only PR with no behaviour change must fix this first, and the fix must not silence pyflakes, so that CI actually exercises the tests.
 
 ## 14. Open questions
 

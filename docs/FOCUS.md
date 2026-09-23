@@ -22,6 +22,7 @@ The product **does not wait for an insider IC result**. The insider score is a s
 - **Done when:** the PR has been reviewed and merged by the owner.
 
 ### Step 1 — Store + identity + watchlist
+- [ ] **First, make CI green.** It has failed at `pyflakes` on `main` since `e068c91`, so pytest never runs in CI. Separate lint-only PR, no behaviour change, and do not remove the lint step.
 - [ ] `src/store/schema.sql` + `db.py` (ADR §6), `src/core/identity.py`, `config/watchlist.example.yaml`
 - [ ] `src/core/calendar.py` + `config/exchanges.yaml` + holiday files, each citing its primary source
 - **Done when:** loading a watchlist of 1 NSE and 1 US security twice gives identical rows, and a test proves it.
