@@ -55,7 +55,7 @@ def _active_securities(conn, market: str | None = None):
     return conn.execute(sql, (market,) if market else ()).fetchall()
 
 
-def cmd_ingest(args, conn, now: datetime, out, http_get: Callable) -> int:
+def cmd_ingest(args, conn, now: datetime, out, http_get: Callable, utcnow: Callable) -> int:
     calendars = load_calendars(args.exchanges)
     report = load_watchlist(conn, parse_watchlist(args.watchlist, calendars), now=now)
     changed = {k: v for k, v in report.securities.items() if v != 'unchanged'}
@@ -64,7 +64,7 @@ def cmd_ingest(args, conn, now: datetime, out, http_get: Callable) -> int:
 
     us = _active_securities(conn, 'US')
     if us:
-        sec = sec_submissions.ingest_sec(conn, us, now=now, get=http_get,
+        sec = sec_submissions.ingest_sec(conn, us, now=now, get=http_get, utcnow=utcnow,
                                          since=_time(args.sec_since) if args.sec_since else None)
         print(f"SEC EDGAR: run {sec.run_id} {sec.status}; {sec.fetches} CIK fetch(es); "
               f"{sec.records_new} new event version(s)", file=out)
@@ -80,7 +80,7 @@ def cmd_ingest(args, conn, now: datetime, out, http_get: Callable) -> int:
     return 0
 
 
-def cmd_checked(args, conn, now: datetime, out, http_get: Callable) -> int:
+def cmd_checked(args, conn, now: datetime, out, http_get: Callable, utcnow: Callable) -> int:
     if args.exchange != 'NSE':
         print('only NSE is checked manually; SEC checks are recorded by `ingest`', file=sys.stderr)
         return 2
@@ -98,7 +98,7 @@ def cmd_checked(args, conn, now: datetime, out, http_get: Callable) -> int:
     return 0
 
 
-def cmd_events(args, conn, now: datetime, out, http_get: Callable) -> int:
+def cmd_events(args, conn, now: datetime, out, http_get: Callable, utcnow: Callable) -> int:
     as_of = db.utc_iso(_time(args.as_of)) if args.as_of else db.utc_iso(now)
     since = db.utc_iso(_time(args.since)) if args.since else db.utc_iso(db.parse_utc(as_of) - timedelta(days=1))
     print(f"MIRROR events as of {as_of}, window ({since}, {as_of}]", file=out)
@@ -143,15 +143,19 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None, *, now: datetime | None = None, out=None,
-         http_get: Callable = requests.get) -> int:
+         http_get: Callable = requests.get, utcnow: Callable[[], datetime] | None = None) -> int:
+    """`now` is the command's cutoff; `utcnow` is the clock for arrival times. Tests that pass a
+    fixed `now` get a clock frozen at it unless they pass their own."""
     args = build_parser().parse_args(argv)
-    now = now or datetime.now(timezone.utc)
+    if utcnow is None:
+        utcnow = (lambda: now) if now else (lambda: datetime.now(timezone.utc))
+    now = now or utcnow()
     out = out or sys.stdout
     if args.db != ':memory:':
         os.makedirs(os.path.dirname(args.db) or '.', exist_ok=True)
     conn = db.connect(args.db)
     try:
-        return args.func(args, conn, now, out, http_get)
+        return args.func(args, conn, now, out, http_get, utcnow)
     except (manual_events.ManualInputError, db.IdentityConflict, ValueError) as e:
         print(f"error: {e}", file=sys.stderr)
         return 2

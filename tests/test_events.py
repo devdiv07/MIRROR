@@ -20,9 +20,10 @@ T = db.utc_iso
 
 
 def _ingest(conn, http, now=NOW, since=None, clock=None):
+    """Responses arrive instantly at `now` (the arrival-time tests are in test_sec_hardening.py)."""
     clock = clock or FakeClock(now)
     return ingest_sec(conn, us_securities(conn), now=now, since=since, get=http,
-                      sleep=clock.sleep, monotonic=clock.monotonic)
+                      sleep=clock.sleep, monotonic=clock.monotonic, utcnow=lambda: now)
 
 
 def _state(conn, key, source, start, end, as_of=None):

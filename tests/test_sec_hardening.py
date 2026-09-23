@@ -1,6 +1,6 @@
 """
 SEC adapter hardening (Step 3 follow-up): the declared User-Agent, one rate limit for every request,
-and invalid responses recorded as failures.
+invalid responses recorded as failures, and as-of times taken when responses arrive.
 Offline: HTTP is tests.support.FakeHttp; time is tests.support.FakeClock.
 """
 
@@ -36,7 +36,7 @@ securities:
 
 def _ingest(conn, http, clock, now=NOW, since=None):
     return ingest_sec(conn, us_securities(conn), now=now, since=since, get=http,
-                      sleep=clock.sleep, monotonic=clock.monotonic)
+                      sleep=clock.sleep, monotonic=clock.monotonic, utcnow=clock.now)
 
 
 def _columns(filings):
@@ -156,7 +156,7 @@ def test_malformed_json_on_submissions_is_a_recorded_failure(tmp_path):
     assert http.calls.count(cik_url('5678')) == 3                        # retried like a 5xx
     status, error = report.checks['US:NYSE:TQC']
     assert status == 'failed' and 'invalid JSON' in error and 'after 3 attempts' in error
-    assert _cov(conn, 'US:NYSE:TQC', T(NOW - HOUR), T(NOW)).state == 'source_failed'
+    assert _cov(conn, 'US:NYSE:TQC', T(NOW - HOUR), T(NOW), as_of=T(clock.now())).state == 'source_failed'
     run = conn.execute('SELECT status, finished_at, error FROM ingest_run').fetchone()
     assert run['status'] == 'partial' and run['finished_at'] and 'invalid JSON' in run['error']
     assert report.checks['US:NASDAQ:TDCA'][0] == 'ok'                    # other CIKs unaffected
@@ -178,7 +178,7 @@ def test_malformed_json_in_an_additional_file_leaves_its_period_incomplete(tmp_p
 
     status, note = report.checks['US:NYSE:TLH']
     assert status == 'partial' and 'invalid JSON' in note and 'not covered: 2025-10-01T01:00:00Z..' in note
-    assert _cov(conn, 'US:NYSE:TLH', T(since), T(NOW)).state == 'coverage_incomplete'
+    assert _cov(conn, 'US:NYSE:TLH', T(since), T(NOW), as_of=T(clock.now())).state == 'coverage_incomplete'
 
 
 _DELETE = object()
@@ -275,3 +275,73 @@ def test_unexpected_error_mid_run_still_closes_the_run(tmp_path, monkeypatch):
         _ingest(conn, FakeHttp(clock=clock), clock)
     run = conn.execute('SELECT status, finished_at, error FROM ingest_run').fetchone()
     assert run['status'] == 'failed' and run['finished_at'] and 'disk full' in run['error']
+
+
+# ── as-of times: windows end at the cutoff; first_seen_at and checked_at at arrival ─
+
+def _with_late_8k(doc):
+    """Add an 8-K to CIK 1234's recent filings, accepted 30 s after NOW (the first run's cutoff)."""
+    late = {'accessionNumber': '0000001234-26-000040', 'filingDate': '2026-09-23', 'reportDate': '',
+            'acceptanceDateTime': '2026-09-23T01:00:30.000Z', 'form': '8-K', 'items': '8.01',
+            'primaryDocument': 'tdc-late.htm', 'primaryDocDescription': '8-K'}
+    for k, v in late.items():
+        doc['filings']['recent'][k].insert(0, v)
+    return doc
+
+
+def _events(conn, key):
+    return [tuple(r) for r in conn.execute(
+        'SELECT d.source_doc_key, e.published_at, e.first_seen_at, d.first_seen_at FROM event e'
+        ' JOIN source_document d USING (doc_id) WHERE e.security_id = ? ORDER BY e.event_id', (sid(conn, key),))]
+
+
+def test_slow_response_is_stamped_when_it_arrives_not_when_the_run_started(tmp_path):
+    conn = new_store(tmp_path)
+    doc = _with_late_8k(copy.deepcopy(fixture('CIK0000001234.json')))
+    clock = FakeClock()
+    http = FakeHttp({cik_url('1234'): [doc]}, clock=clock, latency=90.0)   # every response takes 90 s
+    _ingest(conn, http, clock)
+    arrived = T(NOW + timedelta(seconds=90))                             # CIK 1234 is fetched first
+
+    # The filing is stamped at arrival; the one accepted after the cutoff waits for the next run.
+    assert _events(conn, 'US:NASDAQ:TDCA') == [('0000001234-26-000031', '2026-09-22T20:30:00Z', arrived, arrived)]
+    check = conn.execute('SELECT window_end, checked_at FROM coverage_check WHERE security_id = ?',
+                         (sid(conn, 'US:NASDAQ:TDCA'),)).fetchone()
+    assert tuple(check) == (T(NOW), arrived)
+    run = conn.execute('SELECT started_at, finished_at FROM ingest_run').fetchone()
+    assert tuple(run) == (T(NOW), T(NOW + timedelta(seconds=3 * 90)))
+
+    # As of the cutoff MIRROR had nothing yet; as of the arrival it had the check and the filing.
+    window = (T(NOW - 24 * HOUR), T(NOW))
+    assert db.events_as_of(conn, as_of=T(NOW), security_id=sid(conn, 'US:NASDAQ:TDCA')) == []
+    assert _cov(conn, 'US:NASDAQ:TDCA', *window, as_of=T(NOW)).state == 'not_checked'
+    assert _cov(conn, 'US:NASDAQ:TDCA', *window, as_of=arrived).state == 'checked_with_events'
+
+    # The next run's window starts at the first cutoff, so the late 8-K is stored then.
+    later = NOW + HOUR
+    clock2 = FakeClock(later)
+    _ingest(conn, FakeHttp({cik_url('1234'): [doc]}, clock=clock2, latency=5.0), clock2, now=later)
+    seen = T(later + timedelta(seconds=5))
+    assert _events(conn, 'US:NASDAQ:TDCA')[-1] == ('0000001234-26-000040', '2026-09-23T01:00:30Z', seen, seen)
+    assert len(_events(conn, 'US:NASDAQ:TDCA')) == 2                     # the first 8-K was not duplicated
+
+
+def test_additional_file_filings_are_stamped_at_their_own_arrival(tmp_path):
+    conn = new_store(tmp_path)
+    clock = FakeClock()
+    http = FakeHttp(clock=clock, latency=10.0)
+    _ingest(conn, http, clock, since=NOW.replace(year=2025, month=10, day=1))
+    file_url = FILE_URL.format(name='CIK0000004242-submissions-001.json')
+    file_arrival = T(NOW + timedelta(seconds=10 * (http.calls.index(file_url) + 1)))
+    first_seen = dict((k, s) for k, _, s, _ in _events(conn, 'US:NYSE:TLH'))
+    assert first_seen['0000004242-25-000044'] == file_arrival            # from the older file
+    assert first_seen['0000004242-26-000005'] < file_arrival             # from recent, which came first
+
+
+def test_a_clock_behind_the_cutoff_never_stamps_before_it(tmp_path):
+    conn = new_store(tmp_path)
+    clock = FakeClock()
+    ingest_sec(conn, us_securities(conn), now=NOW, get=FakeHttp(), sleep=clock.sleep,
+               monotonic=clock.monotonic, utcnow=lambda: NOW - HOUR)
+    assert {r[0] for r in conn.execute('SELECT checked_at FROM coverage_check')} == {T(NOW)}
+    assert {r[0] for r in conn.execute('SELECT first_seen_at FROM event')} == {T(NOW)}
