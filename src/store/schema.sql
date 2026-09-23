@@ -1,4 +1,5 @@
--- MIRROR store schema, version 2 (ADR 0001 §6 with the Milestone 1 and Milestone 2 amendments).
+-- MIRROR store schema, version 3 (ADR 0001 §6 with the Milestone 1 and Milestone 2 amendments;
+-- v3 adds coverage_span, which is additive, so a v2 database upgrades by running this file).
 --
 -- Conventions
 --   * Timestamps are ISO-8601 UTC text, e.g. '2026-09-23T07:00:00Z'. Dates are 'YYYY-MM-DD'.
@@ -137,6 +138,19 @@ CREATE TABLE IF NOT EXISTS coverage_check (
   run_id        INTEGER REFERENCES ingest_run (run_id),
   CHECK (window_end >= window_start)
 );
+
+-- What a 'partial' check actually covered (schema v3; ADR §4.2). An 'ok' check covers its whole
+-- window; a 'partial' check covers exactly its spans, and no spans means nothing in the window is
+-- known to be covered (e.g. a manual check limited by a scope note). The rest of the window is a
+-- gap: it stays incomplete, and the next automatic check starts at the earliest gap to retry it.
+CREATE TABLE IF NOT EXISTS coverage_span (
+  check_id      INTEGER NOT NULL REFERENCES coverage_check (check_id),
+  covered_from  TEXT NOT NULL,
+  covered_to    TEXT NOT NULL,
+  CHECK (covered_to > covered_from)
+);
+CREATE INDEX IF NOT EXISTS ix_coverage_span_check ON coverage_span (check_id);
+CREATE INDEX IF NOT EXISTS ix_coverage_check_security ON coverage_check (security_id, source);
 
 CREATE TABLE IF NOT EXISTS corporate_action (
   action_id      INTEGER PRIMARY KEY,

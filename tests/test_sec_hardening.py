@@ -345,3 +345,107 @@ def test_a_clock_behind_the_cutoff_never_stamps_before_it(tmp_path):
                monotonic=clock.monotonic, utcnow=lambda: NOW - HOUR)
     assert {r[0] for r in conn.execute('SELECT checked_at FROM coverage_check')} == {T(NOW)}
     assert {r[0] for r in conn.execute('SELECT first_seen_at FROM event')} == {T(NOW)}
+
+
+# ── gaps persist until fetched: an ordinary rerun retries them ───────────────
+
+OLD_FILE = FILE_URL.format(name='CIK0000004242-submissions-001.json')
+BACKFILL_FROM = NOW.replace(year=2025, month=10, day=1)
+GAP = 'not covered: 2025-10-01T01:00:00Z..2026-01-06T05:00:00Z'        # up to recent's first day (ET)
+DAY = 24 * HOUR
+
+
+def _run(conn, when, since=None, routes=None):
+    clock = FakeClock(when)
+    http = FakeHttp(routes, clock=clock)
+    return _ingest(conn, http, clock, now=when, since=since), http
+
+
+def _windows(conn, key):
+    return [tuple(r) for r in conn.execute(
+        'SELECT window_start, window_end, status FROM coverage_check WHERE security_id = ? ORDER BY check_id',
+        (sid(conn, key),))]
+
+
+def test_ordinary_rerun_after_a_partial_first_backfill_retries_the_missing_period(tmp_path):
+    conn = new_store(tmp_path)
+    first, _ = _run(conn, NOW, since=BACKFILL_FROM, routes={OLD_FILE: [503]})
+    assert first.checks['US:NYSE:TLH'][0] == 'partial'                  # TLH's first check ever
+
+    second, http = _run(conn, NOW + DAY)                                 # an ordinary run: no --sec-since
+    assert OLD_FILE in http.calls
+    assert second.checks['US:NYSE:TLH'] == ('ok', None)
+    assert _windows(conn, 'US:NYSE:TLH')[-1] == (T(BACKFILL_FROM), T(NOW + DAY), 'ok')
+    cov = _cov(conn, 'US:NYSE:TLH', T(BACKFILL_FROM), T(NOW + DAY), as_of=T(NOW + 2 * DAY))
+    assert cov.state == 'checked_with_events'
+    assert '0000004242-25-000044' in [e['source_doc_key'] for e in cov.events]   # from the older file
+    assert _windows(conn, 'US:NYSE:TQC')[-1][0] == T(NOW)                # no gap: resumes where it stopped
+
+
+def test_gap_stays_incomplete_across_runs_until_it_is_fetched(tmp_path):
+    conn = new_store(tmp_path)
+    for when, since in ((NOW, BACKFILL_FROM), (NOW + DAY, None)):
+        report, _ = _run(conn, when, since=since, routes={OLD_FILE: [503]})
+        status, note = report.checks['US:NYSE:TLH']
+        assert status == 'partial' and GAP in note and 'HTTP 503' in note
+
+    as_of = T(NOW + DAY + HOUR)
+    assert _cov(conn, 'US:NYSE:TLH', T(BACKFILL_FROM), T(NOW + DAY), as_of=as_of).state == 'coverage_incomplete'
+    # The days the partial checks did cover still count as checked.
+    assert _cov(conn, 'US:NYSE:TLH', T(NOW), T(NOW + DAY), as_of=as_of).state == 'checked_no_events'
+
+    report, _ = _run(conn, NOW + 2 * DAY)
+    assert report.checks['US:NYSE:TLH'] == ('ok', None)
+    assert db.resume_point(conn, sid(conn, 'US:NYSE:TLH'), 'SEC_EDGAR') == T(NOW + 2 * DAY)
+    assert _cov(conn, 'US:NYSE:TLH', T(BACKFILL_FROM), T(NOW + 2 * DAY),
+                as_of=T(NOW + 3 * DAY)).state == 'checked_with_events'
+
+
+def test_failed_first_run_is_retried_by_the_next_ordinary_run(tmp_path):
+    conn = new_store(tmp_path)
+    _run(conn, NOW, routes={cik_url('5678'): [503]})
+    report, _ = _run(conn, NOW + DAY)
+    assert report.checks['US:NYSE:TQC'] == ('ok', None)
+    starts = [w[0] for w in _windows(conn, 'US:NYSE:TQC')]
+    assert starts == [T(NOW - 7 * DAY)] * 2                              # the failed window is asked again
+
+
+def test_backfill_before_the_first_filing_is_complete(tmp_path):
+    conn = new_store(tmp_path)
+    report, http = _run(conn, NOW, since=NOW.replace(year=2010))
+    assert OLD_FILE in http.calls
+    assert report.checks['US:NYSE:TLH'] == ('ok', None)                  # the oldest file reaches back to the start
+
+
+# ── store rules for covered spans ────────────────────────────────────────────
+
+def test_spans_belong_to_partial_checks_and_are_clipped_to_the_window(tmp_path):
+    conn = new_store(tmp_path)
+    s = sid(conn, 'US:NYSE:TQC')
+    common = dict(security_id=s, source='SEC_EDGAR', method='api', window_start=T(NOW - 10 * HOUR),
+                  window_end=T(NOW), checked_at=T(NOW))
+    with pytest.raises(ValueError, match="'partial'"):
+        db.insert_coverage_check(conn, status='ok', covered_spans=[(T(NOW - HOUR), T(NOW))], **common)
+    db.insert_coverage_check(conn, status='partial', scope_note='x', **common,
+                             covered_spans=[(T(NOW - 20 * HOUR), T(NOW - 5 * HOUR)), (T(NOW + HOUR), T(NOW + 2 * HOUR))])
+    assert db.covered_intervals(conn, s, 'SEC_EDGAR') == [(T(NOW - 10 * HOUR), T(NOW - 5 * HOUR))]
+    assert db.resume_point(conn, s, 'SEC_EDGAR') == T(NOW - 5 * HOUR)
+    assert db.covered_intervals(conn, s, 'SEC_EDGAR', as_of=T(NOW - HOUR)) == []   # recorded later
+
+
+def test_v2_database_upgrades_and_its_partial_checks_cover_nothing(tmp_path):
+    path = str(tmp_path / 'v2.sqlite3')
+    old = db.connect(path)
+    old.execute("INSERT INTO security VALUES (1,'K','US','NYSE','N','CIK','0000000001',NULL,'USD',"
+                "'America/New_York',NULL,'t','t')")
+    old.execute("INSERT INTO coverage_check (security_id, source, method, window_start, window_end, checked_at,"
+                " status, scope_note) VALUES (1, 'SEC_EDGAR', 'api', 'A', 'B', 'B', 'partial', 'gap')")
+    old.execute('DROP TABLE coverage_span')
+    old.execute('PRAGMA user_version = 2')
+    old.close()
+
+    conn = db.connect(path)
+    assert conn.execute('PRAGMA user_version').fetchone()[0] == db.SCHEMA_VERSION == 3
+    assert conn.execute('SELECT COUNT(*) FROM coverage_span').fetchone()[0] == 0
+    assert db.resume_point(conn, 1, 'SEC_EDGAR') == 'A'                  # its whole window is retried
+    conn.close()

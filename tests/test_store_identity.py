@@ -102,7 +102,7 @@ def test_schema_has_every_adr_table(conn):
     tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
     assert tables == {
         'security', 'security_symbol', 'watchlist_item', 'source_document', 'event',
-        'price_import', 'price_bar', 'coverage_check', 'corporate_action', 'explanation',
+        'price_import', 'price_bar', 'coverage_check', 'coverage_span', 'corporate_action', 'explanation',
         'explanation_evidence', 'feedback', 'ingest_run',
     }
 

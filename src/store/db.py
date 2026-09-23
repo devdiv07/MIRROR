@@ -8,7 +8,7 @@ SQLite store access (ADR 0001 §6).
                        as-of readers over the symbol history
   upsert_source_document(), upsert_event_version(), events_as_of()
                        versioned documents/events and the as-of event reader (ADR §4.2)
-  insert_coverage_check(), start_ingest_run(), finish_ingest_run()
+  insert_coverage_check(), covered_intervals(), resume_point(), start_ingest_run(), finish_ingest_run()
 
 History rules enforced here, not left to callers:
   - A security's market, exchange, currency and timezone never change under the same key.
@@ -28,7 +28,7 @@ from contextlib import contextmanager
 from datetime import date, datetime, timezone
 from typing import Iterator
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 SCHEMA_PATH = os.path.join(os.path.dirname(__file__), 'schema.sql')
 DEFAULT_DB_PATH = os.path.join('data', 'mirror.sqlite3')
 BUSY_TIMEOUT_MS = 5000
@@ -338,16 +338,58 @@ def events_as_of(conn: sqlite3.Connection, *, as_of: str, security_id: int | Non
 def insert_coverage_check(conn: sqlite3.Connection, *, security_id: int, source: str, method: str,
                           window_start: str, window_end: str, checked_at: str, status: str,
                           scope_note: str | None = None, error: str | None = None,
-                          run_id: int | None = None) -> int:
+                          run_id: int | None = None,
+                          covered_spans: list[tuple[str, str]] | None = None) -> int:
+    """Record one check. `covered_spans` (partial checks only) are the parts of the window it covered."""
+    spans = [(max(lo, window_start), min(hi, window_end)) for lo, hi in covered_spans or []]
+    spans = [(lo, hi) for lo, hi in spans if hi > lo]
+    if spans and status != 'partial':
+        raise ValueError(f"covered spans belong to a 'partial' check, not {status!r}")
     cur = conn.execute(
         'INSERT INTO coverage_check (security_id, source, method, window_start, window_end, checked_at,'
         ' status, scope_note, error, run_id) VALUES (?,?,?,?,?,?,?,?,?,?)',
         (security_id, source, method, window_start, window_end, checked_at, status, scope_note, error, run_id))
+    conn.executemany('INSERT INTO coverage_span (check_id, covered_from, covered_to) VALUES (?,?,?)',
+                     [(cur.lastrowid, lo, hi) for lo, hi in spans])
     return cur.lastrowid
 
 
+def covered_intervals(conn: sqlite3.Connection, security_id: int, source: str,
+                      as_of: str | None = None) -> list[tuple[str, str]]:
+    """What (security, source) checks have covered: whole windows of ok checks plus the spans of
+    partial checks, counting only checks with checked_at <= as_of when as_of is given."""
+    when = ' AND c.checked_at <= :as_of' if as_of else ''
+    params = {'sid': security_id, 'source': source, 'as_of': as_of}
+    ok = conn.execute('SELECT c.window_start, c.window_end FROM coverage_check c WHERE c.security_id = :sid'
+                      f" AND c.source = :source AND c.status = 'ok'{when}", params).fetchall()
+    spans = conn.execute('SELECT s.covered_from, s.covered_to FROM coverage_span s JOIN coverage_check c'
+                         ' USING (check_id) WHERE c.security_id = :sid AND c.source = :source'
+                         f" AND c.status = 'partial'{when}", params).fetchall()
+    return sorted((lo, hi) for lo, hi in ok + spans)
+
+
+def resume_point(conn: sqlite3.Connection, security_id: int, source: str) -> str | None:
+    """Where the next automatic check must start so that no gap is skipped, or None if never checked.
+
+    Walking forward from the earliest window any check (ok, partial or failed) was asked to cover,
+    this is the first moment that no ok window or partial span covers. With no gaps it is the end
+    of the latest coverage; after a partial backfill or a failed run it is the start of the gap.
+    """
+    first = conn.execute('SELECT MIN(window_start) FROM coverage_check WHERE security_id = ? AND source = ?',
+                         (security_id, source)).fetchone()[0]
+    if first is None:
+        return None
+    reach = first
+    for lo, hi in covered_intervals(conn, security_id, source):
+        if lo > reach:
+            break
+        reach = max(reach, hi)
+    return reach
+
+
 def last_covered_through(conn: sqlite3.Connection, security_id: int, source: str) -> str | None:
-    """End of the latest ok/partial check for (security, source): where the next check resumes."""
+    """End of the latest ok/partial check for (security, source): where the next *manual* check
+    resumes. A manual partial check is limited by scope, not time, and the owner chose to go on."""
     row = conn.execute("SELECT MAX(window_end) FROM coverage_check WHERE security_id = ? AND source = ?"
                        " AND status IN ('ok', 'partial')", (security_id, source)).fetchone()
     return row[0]

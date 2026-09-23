@@ -3,16 +3,18 @@ Coverage states (ADR 0001 §4.4).
 
 For one (security, source, window) evaluated as of time T, exactly one state:
 
-  checked_with_events   ok checks cover the whole window, and >=1 visible event from the source
+  checked_with_events   coverage is complete (ok check windows plus the covered spans of partial
+                        checks contain the whole window), and >=1 visible event from the source
                         has published_at in the window
-  checked_no_events     ok checks cover the whole window, and no such event exists
+  checked_no_events     coverage is complete, and no such event exists
   source_failed         not fully covered, and the latest overlapping attempt failed
   coverage_incomplete   not fully covered, latest attempt did not fail, some ok/partial check overlaps
   not_checked           no check overlaps the window
 
 Only checks with checked_at <= T and event versions with first_seen_at <= T count, so the
-answer is what MIRROR could honestly have said at T. Complete ok coverage is decided first:
-a later failed retry does not erase an earlier complete check.
+answer is what MIRROR could honestly have said at T. Complete coverage is decided first:
+a later failed retry does not erase an earlier complete check. A partial check counts only for
+the spans it recorded (coverage_span); the rest of its window stays a gap.
 
 Windows are (start, end] in 'YYYY-MM-DDTHH:MM:SSZ' text (fixed width, so string order is
 time order). A check covers [window_start, window_end].
@@ -75,9 +77,9 @@ def coverage(conn: sqlite3.Connection, *, security_id: int, source: str, window_
                              published_after=window_start, published_through=window_end)
     result = Coverage(security_id, source, window_start, window_end, NOT_CHECKED, '', list(events))
 
-    ok = [(c['window_start'], c['window_end']) for c in checks if c['status'] == 'ok']
-    if covers(ok, window_start, window_end):
-        through = max(hi for _, hi in ok)
+    covered = db.covered_intervals(conn, security_id, source, as_of=as_of)    # ok windows + partial spans
+    if covers(covered, window_start, window_end):
+        through = max(hi for _, hi in covered)
         n = len(events)
         if n:
             result.state = CHECKED_WITH_EVENTS

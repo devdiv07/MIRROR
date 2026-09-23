@@ -268,7 +268,7 @@ def test_empty_v1_database_is_upgraded(tmp_path):
     path = str(tmp_path / 'v1.sqlite3')
     _v1_database(path).close()
     conn = db.connect(path)
-    assert conn.execute('PRAGMA user_version').fetchone()[0] == 2
+    assert conn.execute('PRAGMA user_version').fetchone()[0] == db.SCHEMA_VERSION
     cols = {r['name'] for r in conn.execute('PRAGMA table_info(event)')}
     assert {'version', 'content_sha256', 'dedup_key'} <= cols
 

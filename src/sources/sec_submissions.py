@@ -16,9 +16,12 @@ Coverage of a fetch with cutoff F (ADR §4.2, "SEC fetch coverage and backfill")
   - filings.recent covers from 00:00 America/New_York on the day AFTER its oldest filingDate
     (filings on that day may continue in an older file) up to F; if filings.files is empty,
     recent is the complete history;
-  - each additional file fetched successfully covers filingFrom 00:00 ET .. (filingTo + 1 day) 00:00 ET.
+  - each additional file fetched successfully covers filingFrom 00:00 ET .. (filingTo + 1 day) 00:00 ET,
+    and the oldest file covers from the beginning (recent + files is the whole EDGAR history).
 A check is 'ok' only if that union contains the whole window, otherwise 'partial' with a
-scope_note naming what is missing. Additional files are fetched only when the window needs them.
+scope_note naming what is missing and the covered spans saved in coverage_span. The gap stays
+incomplete, and the next ordinary run starts at it (db.resume_point) until it is fetched.
+Additional files are fetched only when the window needs them.
 
 Responses are validated before use (_parse_submissions, _filing_rows). Invalid JSON is retried like
 a 5xx; a response of the wrong shape is an InvalidResponse. Either way the request counts as failed:
@@ -233,8 +236,11 @@ def _fetch_cik(client: SecClient, cik: str, earliest_start: str, cutoff: str,
     out.covered.append((recent_from, cutoff))
     if earliest_start >= recent_from:
         return out
+    first_from = min(f['filingFrom'] for f in files)
     for f in files:
-        lo = _et_midnight(date.fromisoformat(f['filingFrom']))
+        # recent + all files is the company's whole EDGAR history, so the oldest file reaches back
+        # to the beginning (as recent does when there are no files).
+        lo = _BEGINNING if f['filingFrom'] == first_from else _et_midnight(date.fromisoformat(f['filingFrom']))
         hi = _et_midnight(date.fromisoformat(f['filingTo']) + timedelta(days=1))
         if hi <= earliest_start or lo >= recent_from:
             continue                                 # not needed for this window
@@ -278,8 +284,10 @@ def ingest_sec(conn, securities: list, *, now: datetime, since: datetime | None 
     """Fetch and store SEC filings for US securities (rows with security_id, security_key, company_id).
 
     `now` is the run's cutoff, taken before any request: every window ends there. Each listing's
-    window starts at `since` if given (backfill), else where its last ok/partial SEC check ended,
-    else now - DEFAULT_LOOKBACK. first_seen_at and checked_at come from `utcnow` as responses arrive.
+    window starts at `since` if given (backfill), else at db.resume_point (the earliest period its
+    SEC checks have not covered, so a partial backfill or a failed run is retried by the next
+    ordinary run), else now - DEFAULT_LOOKBACK. first_seen_at and checked_at come from `utcnow`
+    as responses arrive.
     Raises MissingUserAgent, before any request or store write, if SEC_USER_AGENT is not set.
     """
     client = SecClient(user_agent_from_env(), get=get, sleep=sleep, monotonic=monotonic)
@@ -299,7 +307,7 @@ def ingest_sec(conn, securities: list, *, now: datetime, since: datetime | None 
         for cik, group in sorted(by_cik.items()):
             starts = {}
             for s in group:
-                resume = db.last_covered_through(conn, s['security_id'], SOURCE)
+                resume = db.resume_point(conn, s['security_id'], SOURCE)
                 start = db.utc_iso(since) if since else (resume or db.utc_iso(now - DEFAULT_LOOKBACK))
                 starts[s['security_id']] = min(start, cutoff)
             fetch = _fetch_cik(client, cik, min(starts.values()), cutoff, received)
@@ -336,7 +344,8 @@ def _record_cik(conn, group, starts, fetch: _CikFetch, cutoff: str, checked_at: 
             note = '; '.join([_gap_note(fetch.covered, start, cutoff)] + fetch.missing)
         db.insert_coverage_check(conn, security_id=sid, source=SOURCE, method='api', window_start=start,
                                  window_end=cutoff, checked_at=checked_at, status=status,
-                                 scope_note=note, error=error, run_id=run_id)
+                                 scope_note=note, error=error, run_id=run_id,
+                                 covered_spans=fetch.covered if status == 'partial' else None)
         report.checks[s['security_key']] = (status, note or error)
         statuses.append(status)
         if not fetch.error:
