@@ -13,9 +13,10 @@ the listing's check was recorded, both from the `utcnow` clock and never earlier
 response therefore never makes a filing look known before MIRROR had it.
 
 Coverage of a fetch with cutoff F (ADR §4.2, "SEC fetch coverage and backfill"):
-  - filings.recent covers from 00:00 America/New_York on the day AFTER its oldest filingDate
-    (filings on that day may continue in an older file) up to F; if filings.files is empty,
-    recent is the complete history;
+  - filings.recent covers up to F from 00:00 America/New_York on the day AFTER the earlier of its
+    oldest filingDate (filings on that day may continue in an older file) and the newest file's
+    filingTo (later filings can only be in recent); if filings.files is empty, recent is the
+    complete history;
   - each additional file fetched successfully covers filingFrom 00:00 ET .. (filingTo + 1 day) 00:00 ET,
     and the oldest file covers from the beginning (recent + files is the whole EDGAR history).
 A check is 'ok' only if that union contains the whole window, otherwise 'partial' with a
@@ -231,8 +232,12 @@ def _fetch_cik(client: SecClient, cik: str, earliest_start: str, cutoff: str,
     if not files:
         out.covered.append((_BEGINNING, cutoff))
         return out
+    # Filings after the newest file's filingTo can only be in recent, so recent covers from the day
+    # after that. If recent's oldest day is earlier (a day split between recent and a file), it
+    # covers from the day after its oldest day. Apple: file to 2015-07-25, recent from 2015-07-27.
     oldest = min((date.fromisoformat(f['filingDate']) for f in recent), default=None)
-    recent_from = _et_midnight(oldest + timedelta(days=1)) if oldest else cutoff
+    newest_file_to = max(date.fromisoformat(f['filingTo']) for f in files)
+    recent_from = _et_midnight(min(oldest or newest_file_to, newest_file_to) + timedelta(days=1))
     out.covered.append((recent_from, cutoff))
     if earliest_start >= recent_from:
         return out

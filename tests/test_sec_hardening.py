@@ -410,6 +410,32 @@ def test_failed_first_run_is_retried_by_the_next_ordinary_run(tmp_path):
     assert starts == [T(NOW - 7 * DAY)] * 2                              # the failed window is asked again
 
 
+def _apple_shaped_boundary():
+    """The live AAPL shape seen 2026-09-23: one file to 2015-07-25 (a Saturday), recent from
+    2015-07-27 (a Monday), nothing filed in between."""
+    file_name = 'CIK0000007777-submissions-001.json'
+    submissions = {'cik': '7777', 'filings': {
+        'recent': _columns([('0000007777-26-000009', '2026-08-04', '10-Q'),
+                            ('0000007777-15-000031', '2015-07-27', '8-K')]),
+        'files': [{'name': file_name, 'filingCount': 1, 'filingFrom': '1994-01-26', 'filingTo': '2015-07-25'}]}}
+    older = _columns([('0000007777-15-000030', '2015-07-24', '8-K')])
+    return {cik_url('7777'): [submissions], FILE_URL.format(name=file_name): [older]}, FILE_URL.format(name=file_name)
+
+
+def test_days_between_the_newest_file_and_recent_are_covered_by_recent(tmp_path):
+    routes, file_url = _apple_shaped_boundary()
+    conn = new_store(tmp_path, MANY_WATCHLIST)
+    report, http = _run(conn, NOW, since=NOW.replace(year=2015, month=1, day=1), routes=routes)
+    assert report.checks['US:NYSE:TMF'] == ('ok', None)                  # was: not covered 07-26..07-28
+    assert file_url in http.calls
+    assert db.resume_point(conn, sid(conn, 'US:NYSE:TMF'), 'SEC_EDGAR') == T(NOW)   # nothing to retry
+
+    # A window that starts on the Sunday between them needs only recent.
+    conn = new_store(tmp_path, MANY_WATCHLIST)
+    report, http = _run(conn, NOW, since=NOW.replace(year=2015, month=7, day=26, hour=12), routes=routes)
+    assert report.checks['US:NYSE:TMF'] == ('ok', None) and file_url not in http.calls
+
+
 def test_backfill_before_the_first_filing_is_complete(tmp_path):
     conn = new_store(tmp_path)
     report, http = _run(conn, NOW, since=NOW.replace(year=2010))
