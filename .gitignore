@@ -26,6 +26,12 @@ Thumbs.db
 data/*.csv
 results/*.csv
 
+# MIRROR store (SQLite + WAL side files) and the owner's personal watchlist/theses
+data/*.sqlite3
+data/*.sqlite3-wal
+data/*.sqlite3-shm
+config/watchlist.yaml
+
 # Captured run logs / pipeline stdout
 final_pipeline_output.txt
 pipeline_run.txt

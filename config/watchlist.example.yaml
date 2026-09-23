@@ -1,0 +1,46 @@
+# MIRROR watchlist, format version 1 (ADR 0001 §6).
+#
+# Copy this file to config/watchlist.yaml (git-ignored, because theses are personal) and replace
+# the two fictional entries below with the 10-20 stocks you follow. The entries here are
+# placeholders: their names, keys and CIK are not real identifiers.
+#
+# Fields
+#   key               MIRROR's stable identity for this listing. Choose it once and never change
+#                     it, even if the ticker, ISIN or name changes. Upper case, e.g. IN:NSE:ABC.
+#   exchange          NSE | NYSE | NASDAQ (must exist in config/exchanges.yaml). Market,
+#                     currency and timezone come from that config.
+#   name              Company name as you want it shown.
+#   cik               US only, required: the SEC Central Index Key (see data/company_tickers.json
+#                     or https://www.sec.gov/search-filings). Not a key: one CIK can cover
+#                     several share classes.
+#   isin              Optional. Validated (format and check digit), stored as an attribute.
+#   symbols           Symbol history, oldest first. valid_from = first day you assert this symbol
+#                     maps to this listing; valid_to (exclusive) = the day a new symbol took
+#                     effect. To record a ticker change, set valid_to on the old period and add
+#                     a new period starting that day. Old periods are never edited or removed.
+#   thesis, horizon   Your saved thesis. Edits are logged, so earlier versions stay in the history.
+#   move_trigger_pct  Optional per-stock override of defaults.move_trigger_pct.
+
+version: 1
+
+defaults:
+  move_trigger_pct: 5.0      # your preference, not a validated market threshold
+
+securities:
+  - key: IN:NSE:EXAMPLEIN
+    exchange: NSE
+    name: Example India Ltd (placeholder)
+    symbols:
+      - {symbol: EXAMPLEIN, valid_from: 2026-09-01}
+    thesis: "Placeholder thesis: replace with why you own or watch this stock."
+    horizon: 2-3 years
+
+  - key: US:NYSE:EXAMPLEUS
+    exchange: NYSE
+    name: Example US Inc (placeholder)
+    cik: "0000000000"
+    symbols:
+      - {symbol: EXUS, valid_from: 2026-09-01}
+    thesis: "Placeholder thesis."
+    horizon: 3-5 years
+    move_trigger_pct: 8
