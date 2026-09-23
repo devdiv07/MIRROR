@@ -40,11 +40,12 @@ Work directly on `main` in small commits. Check CI and the named ADR cases after
 - **Done when:** loading a 1 NSE + 1 US watchlist twice gives identical rows, symbol-change and calendar tests pass, and CI is green.
 - **Result:** `f8cc7e6` (calendar), `5ba71d7` (store + identity), `d3898bc` (ADR §6 amendment; Q4 resolved, Q6 provisional). CI on `d3898bc` ([run 35860281919](https://github.com/devdiv07/MIRROR/actions/runs/35860281919)): pyflakes clean · pytest **77 passed** (31 existing + 46 new) · pip-audit clean. Deviation from the ADR draft: securities are keyed by a MIRROR `security_key` because one CIK can cover several share classes (ADR §6 amendment). Calendar coverage: NSE and Nasdaq 2026 only, NYSE 2026–2028. Before 2027, add NSE's and Nasdaq's 2027 lists from their publications.
 
-### Step 3 — events: event foundation and coverage _(ACTIVE)_
-- [ ] SEC submissions adapter (keeps `acceptanceDateTime`; fixture-tested, no network), manual NSE events, the `checked` CLI command, the coverage states, and a plain-text `events` listing
+### Step 3 — events: event foundation and coverage _(done 2026-09-23)_
+- [x] SEC submissions adapter (keeps `acceptanceDateTime`; fixture-tested, no network), manual NSE events, the `checked` CLI command, the coverage states, and a plain-text `events` listing
 - **Done when:** ADR cases **C1** (not checked) and **C2** (checked, no events) pass, along with C3–C7 (incl. checked-with-events and a shared-CIK/two-listing fixture), **V1** (event revision read at two times), **B1** (backfill only `ok` when every needed SEC file was fetched), **R1** (as-of guard), A6 (failure state), and the duplicate-ingest tests.
+- **Result:** contracts fixed first in `7cf134d` (fifth state `checked_with_events`; event versions with an as-of rule; SEC backfill coverage). `e2e2771` rejects NaN/infinite move triggers. `1917d63` is schema v2 (versioned events/documents). `9493792` adds the SEC adapter, manual NSE events, coverage states and the CLI. `bce14c2` updates the docs. CI on `bce14c2` ([run 35863687190](https://github.com/devdiv07/MIRROR/actions/runs/35863687190)): pyflakes clean · pytest **122 passed** · pip-audit clean. All tests are offline. The adapter has not yet been run against live SEC data; the first real `ingest` on the owner's watchlist is the next manual check.
 
-### Step 4 — prices: prices, corporate actions, moves
+### Step 4 — prices: prices, corporate actions, moves _(ACTIVE)_
 - [ ] Price CSV import with `price_import` provenance, corporate actions, `src/compute/moves.py`
 - **Done when:** ADR cases **A3** (split/bonus), **A5** (stale price), **P1** (unknown upstream shown as unknown), **P2** (no bare numbers) and the unrecorded-action guard pass.
 
