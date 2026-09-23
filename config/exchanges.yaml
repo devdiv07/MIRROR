@@ -1,0 +1,65 @@
+# Exchange sessions and holiday coverage for MIRROR's calendar (src/core/calendar.py).
+#
+# Every value here comes from a primary source listed under `sources`, read on 2026-09-23.
+# Only the regular (normal-market) session is modelled: pre-open, closing and after-hours
+# sessions are out of scope for daily moves.
+#
+# Coverage is explicit. Asking the calendar about a year outside `years_covered` raises
+# CalendarNotCovered instead of assuming "no holidays". To extend a year, add its rows to the
+# holiday file from the exchange's own publication and cite it here.
+
+exchanges:
+  NSE:
+    market: IN
+    timezone: Asia/Kolkata
+    currency: INR
+    regular_session: {open: "09:15", close: "15:30"}
+    weekend: [Sat, Sun]
+    holidays_file: holidays/NSE.csv
+    years_covered: [2026]
+    sources:
+      - what: Regular session (Normal / Odd lot market 09:15-15:30 hrs); page "Updated on 04/08/2025"
+        url: https://www.nseindia.com/static/market-data/market-timings
+      - what: 2026 trading holidays, NSE/CMTR/71775 dated 2025-12-12 (Capital Market segment)
+        url: https://nsearchives.nseindia.com/content/circulars/CMTR71775.pdf
+      - what: Added holiday 2026-01-15 (Maharashtra municipal elections), NSE/CMTR/72260 dated 2026-01-12
+        url: https://nsearchives.nseindia.com/content/circulars/CMTR72260.pdf
+      - what: Live trading session Sunday 2026-02-01 (Union Budget), NSE/CMTR/72349 dated 2026-01-16
+        url: https://nsearchives.nseindia.com/content/circulars/CMTR72349.pdf
+    known_gaps:
+      - Muhurat trading on Sunday 2026-11-08 is announced in NSE/CMTR/71775 but its timings were
+        not yet notified when this file was written; it is modelled as a special session with
+        unknown times.
+      - Amendments to the 2026 list were searched for up to 2026-09-23. Only NSE/CMTR/72260 was
+        found, but the search cannot prove no other amendment exists.
+
+  NYSE:
+    market: US
+    timezone: America/New_York
+    currency: USD
+    regular_session: {open: "09:30", close: "16:00"}
+    weekend: [Sat, Sun]
+    holidays_file: holidays/NYSE.csv
+    years_covered: [2026, 2027, 2028]
+    sources:
+      - what: Core Trading Session 9:30 a.m. to 4:00 p.m. ET; holidays and 1:00 p.m. early closes for 2026-2028
+        url: https://www.nyse.com/markets/hours-calendars
+    known_gaps:
+      - Unscheduled closures (for example a national day of mourning) are announced ad hoc and
+        must be added when they occur.
+
+  NASDAQ:
+    market: US
+    timezone: America/New_York
+    currency: USD
+    regular_session: {open: "09:30", close: "16:00"}
+    weekend: [Sat, Sun]
+    holidays_file: holidays/NASDAQ.csv
+    years_covered: [2026]
+    sources:
+      - what: 2026 holiday schedule and early closes; trading hours 9:30 am - 4:00 pm ET
+        url: https://www.nasdaq.com/market-activity/stock-market-holiday-schedule
+      - what: 2026 U.S. Equity and Options Markets Holiday Schedule (same dates)
+        url: https://www.nasdaqtrader.com/Trader.aspx?id=Calendar
+    known_gaps:
+      - Nasdaq's pages list 2026 only; 2027 is not configured until Nasdaq publishes it.

@@ -1,0 +1,35 @@
+date,status,open,close,description,source
+2026-01-01,closed,,,New Year's Day,https://www.nyse.com/markets/hours-calendars
+2026-01-19,closed,,,"Martin Luther King, Jr. Day",https://www.nyse.com/markets/hours-calendars
+2026-02-16,closed,,,Washington's Birthday,https://www.nyse.com/markets/hours-calendars
+2026-04-03,closed,,,Good Friday,https://www.nyse.com/markets/hours-calendars
+2026-05-25,closed,,,Memorial Day,https://www.nyse.com/markets/hours-calendars
+2026-06-19,closed,,,Juneteenth National Independence Day,https://www.nyse.com/markets/hours-calendars
+2026-07-03,closed,,,Independence Day (observed),https://www.nyse.com/markets/hours-calendars
+2026-09-07,closed,,,Labor Day,https://www.nyse.com/markets/hours-calendars
+2026-11-26,closed,,,Thanksgiving Day,https://www.nyse.com/markets/hours-calendars
+2026-11-27,early_close,,13:00,Day after Thanksgiving (early close 1:00 p.m.),https://www.nyse.com/markets/hours-calendars
+2026-12-24,early_close,,13:00,Christmas Eve (early close 1:00 p.m.),https://www.nyse.com/markets/hours-calendars
+2026-12-25,closed,,,Christmas Day,https://www.nyse.com/markets/hours-calendars
+2027-01-01,closed,,,New Year's Day,https://www.nyse.com/markets/hours-calendars
+2027-01-18,closed,,,"Martin Luther King, Jr. Day",https://www.nyse.com/markets/hours-calendars
+2027-02-15,closed,,,Washington's Birthday,https://www.nyse.com/markets/hours-calendars
+2027-03-26,closed,,,Good Friday,https://www.nyse.com/markets/hours-calendars
+2027-05-31,closed,,,Memorial Day,https://www.nyse.com/markets/hours-calendars
+2027-06-18,closed,,,Juneteenth National Independence Day (observed),https://www.nyse.com/markets/hours-calendars
+2027-07-05,closed,,,Independence Day (observed),https://www.nyse.com/markets/hours-calendars
+2027-09-06,closed,,,Labor Day,https://www.nyse.com/markets/hours-calendars
+2027-11-25,closed,,,Thanksgiving Day,https://www.nyse.com/markets/hours-calendars
+2027-11-26,early_close,,13:00,Day after Thanksgiving (early close 1:00 p.m.),https://www.nyse.com/markets/hours-calendars
+2027-12-24,closed,,,Christmas Day (observed),https://www.nyse.com/markets/hours-calendars
+2028-01-17,closed,,,"Martin Luther King, Jr. Day",https://www.nyse.com/markets/hours-calendars
+2028-02-21,closed,,,Washington's Birthday,https://www.nyse.com/markets/hours-calendars
+2028-04-14,closed,,,Good Friday,https://www.nyse.com/markets/hours-calendars
+2028-05-29,closed,,,Memorial Day,https://www.nyse.com/markets/hours-calendars
+2028-06-19,closed,,,Juneteenth National Independence Day,https://www.nyse.com/markets/hours-calendars
+2028-07-03,early_close,,13:00,Day before Independence Day (early close 1:00 p.m.),https://www.nyse.com/markets/hours-calendars
+2028-07-04,closed,,,Independence Day,https://www.nyse.com/markets/hours-calendars
+2028-09-04,closed,,,Labor Day,https://www.nyse.com/markets/hours-calendars
+2028-11-23,closed,,,Thanksgiving Day,https://www.nyse.com/markets/hours-calendars
+2028-11-24,early_close,,13:00,Day after Thanksgiving (early close 1:00 p.m.),https://www.nyse.com/markets/hours-calendars
+2028-12-25,closed,,,Christmas Day,https://www.nyse.com/markets/hours-calendars

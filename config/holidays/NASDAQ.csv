@@ -1,0 +1,13 @@
+date,status,open,close,description,source
+2026-01-01,closed,,,New Year's Day,https://www.nasdaq.com/market-activity/stock-market-holiday-schedule
+2026-01-19,closed,,,"MLK, Jr. Day",https://www.nasdaq.com/market-activity/stock-market-holiday-schedule
+2026-02-16,closed,,,Presidents Day,https://www.nasdaq.com/market-activity/stock-market-holiday-schedule
+2026-04-03,closed,,,Good Friday,https://www.nasdaq.com/market-activity/stock-market-holiday-schedule
+2026-05-25,closed,,,Memorial Day,https://www.nasdaq.com/market-activity/stock-market-holiday-schedule
+2026-06-19,closed,,,Juneteenth,https://www.nasdaq.com/market-activity/stock-market-holiday-schedule
+2026-07-03,closed,,,Independence Day (Observed),https://www.nasdaq.com/market-activity/stock-market-holiday-schedule
+2026-09-07,closed,,,Labor Day,https://www.nasdaq.com/market-activity/stock-market-holiday-schedule
+2026-11-26,closed,,,Thanksgiving Day,https://www.nasdaq.com/market-activity/stock-market-holiday-schedule
+2026-11-27,early_close,,13:00,Early Close 1:00 p.m.,https://www.nasdaq.com/market-activity/stock-market-holiday-schedule
+2026-12-24,early_close,,13:00,Early Close 1:00 p.m.,https://www.nasdaq.com/market-activity/stock-market-holiday-schedule
+2026-12-25,closed,,,Christmas Day,https://www.nasdaq.com/market-activity/stock-market-holiday-schedule
