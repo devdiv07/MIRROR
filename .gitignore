@@ -31,6 +31,7 @@ data/*.sqlite3
 data/*.sqlite3-wal
 data/*.sqlite3-shm
 config/watchlist.yaml
+data/prices/
 
 # Captured run logs / pipeline stdout
 final_pipeline_output.txt

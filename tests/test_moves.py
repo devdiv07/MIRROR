@@ -4,18 +4,20 @@ unrecorded-action guard, stale prices, the volume ratio, and corporate-action im
 recomputed here from the stored rows. Offline; price series are written as MIRROR price CSVs.
 """
 
+import io
 import re
 from datetime import date
 
 import pytest
 
+from src import cli
 from src.compute.moves import (
     CALC_VERSION, compute_move, price_claim_lines, triggered,
 )
 from src.sources.corporate_actions import ActionInputError, import_corporate_actions
 from src.sources.prices_csv import import_price_file
 from src.store import db
-from tests.support import CALENDARS, HOUR, NOW, new_store, sid
+from tests.support import CALENDARS, HOUR, NOW, WATCHLIST, FakeHttp, new_store, sid
 
 T = db.utc_iso
 KEY = 'US:NASDAQ:TDCA'
@@ -284,6 +286,41 @@ def test_bad_action_file_is_rejected_whole(tmp_path, case):
         _actions(conn, tmp_path, [ok, row])
     assert conn.execute('SELECT COUNT(*) FROM corporate_action').fetchone()[0] == 0
     assert conn.execute('SELECT COUNT(*) FROM source_document').fetchone()[0] == 0
+
+
+# ── CLI: ingest imports prices and actions; `moves` shows them ───────────────
+
+def test_cli_ingest_then_moves(tmp_path):
+    (tmp_path / 'w.yaml').write_text(WATCHLIST, encoding='utf-8')
+    prices = tmp_path / 'prices'
+    prices.mkdir()
+    _series(prices, (101.0, 2_000_000), close=200.0, name='tdca.csv')
+    (tmp_path / 'ca.csv').write_text(CA_HEADER + A3_BONUS, encoding='utf-8')
+    dbp = str(tmp_path / 'm.sqlite3')
+
+    def run(*argv):
+        out = io.StringIO()
+        code = cli.main(['--db', dbp, *argv], now=NOW, out=out, http_get=FakeHttp())
+        return code, out.getvalue()
+
+    ingest = ('ingest', '--watchlist', str(tmp_path / 'w.yaml'), '--prices-dir', str(prices),
+              '--corporate-actions', str(tmp_path / 'ca.csv'))
+    code, text = run(*ingest)
+    assert code == 0 and 'corporate actions: 1 row(s), 1 new' in text
+    assert re.search(r'prices: tdca\.csv inserted \(import #1, 26 bars, sha256 [0-9a-f]{12}\)', text)
+    code, text = run(*ingest)
+    assert 'prices: tdca.csv unchanged (import #1' in text and 'corporate actions: 1 row(s), 0 new' in text
+
+    code, text = run('moves', '--date', '2026-09-22', '--as-of', '2026-09-23T01:00:00Z')
+    assert code == 0
+    block = text.split('US:NASDAQ:TDCA')[1].split('\nUS:')[0]
+    assert '[computed; no card, no trigger set]' in block and '+1.00% adjusted close-to-close' in block
+    assert 'Upstream price source: unknown (owner-supplied file tdca.csv' in block
+    assert 'US:NYSE:TQC' in text and 'stale: no price data' in text          # no prices imported for it
+    assert 'US:NASDAQ:TDCB' in text
+
+    code, text = run('moves', '--date', '2026-09-22', '--as-of', '2026-09-22T12:00:00Z')
+    assert 'had not closed as of 2026-09-22T12:00:00Z' in text
 
 
 def test_calc_version_changes_with_parameters():
