@@ -8,6 +8,8 @@ SQLite store access (ADR 0001 §6).
                        as-of readers over the symbol history
   upsert_source_document(), upsert_event_version(), events_as_of()
                        versioned documents/events and the as-of event reader (ADR §4.2)
+  insert_price_import(), price_bars_as_of(), upsert_corporate_action(), corporate_actions_as_of()
+                       price provenance and as-of readers (ADR §5.1, §7)
   insert_coverage_check(), covered_intervals(), resume_point(), start_ingest_run(), finish_ingest_run()
 
 History rules enforced here, not left to callers:
@@ -331,6 +333,69 @@ def events_as_of(conn: sqlite3.Connection, *, as_of: str, security_id: int | Non
         params['through'] = published_through
     sql.append('ORDER BY e.published_at, e.event_id')
     return conn.execute(' '.join(sql), params).fetchall()
+
+
+# ── prices and corporate actions (ADR §5.1, §7) ──────────────────────────────
+
+def insert_price_import(conn: sqlite3.Connection, *, file_name: str, file_sha256: str, declared_vendor: str,
+                        declared_source_url: str | None, vendor_as_of: str | None, imported_at: str,
+                        row_count: int) -> int:
+    return conn.execute(
+        'INSERT INTO price_import (file_name, file_sha256, declared_vendor, declared_source_url, vendor_as_of,'
+        ' imported_at, row_count) VALUES (?,?,?,?,?,?,?)',
+        (file_name, file_sha256, declared_vendor, declared_source_url, vendor_as_of, imported_at,
+         row_count)).lastrowid
+
+
+def price_bars_as_of(conn: sqlite3.Connection, security_id: int, as_of: str,
+                     through: str | None = None) -> dict[str, sqlite3.Row]:
+    """Per trade_date (<= through), the bar from the newest import with imported_at <= as_of.
+
+    Rows carry their import's provenance columns. A bar whose import_id resolves to no price_import
+    row has provenance_ok = 0 and wins its day: when it arrived is unknown, so it cannot be ordered
+    against other imports, and callers must refuse any number derived from it (ADR §10, case P2).
+    """
+    rows = conn.execute(
+        'SELECT b.*, i.import_id IS NOT NULL AS provenance_ok, i.file_name, i.file_sha256, i.declared_vendor,'
+        ' i.declared_source_url, i.vendor_as_of, i.imported_at'
+        ' FROM price_bar b LEFT JOIN price_import i ON i.import_id = b.import_id'
+        ' WHERE b.security_id = :sid AND (i.import_id IS NULL OR i.imported_at <= :as_of)'
+        ' AND (:through IS NULL OR b.trade_date <= :through)'
+        ' ORDER BY b.trade_date, i.import_id IS NULL, i.imported_at, b.import_id',
+        {'sid': security_id, 'as_of': as_of, 'through': through}).fetchall()
+    return {r['trade_date']: r for r in rows}           # later rows (newer, or unresolved) win their day
+
+
+def upsert_corporate_action(conn: sqlite3.Connection, *, security_id: int, action_type: str, ex_date: str,
+                            new_per_old: float | None, cash_amount: float | None, currency: str | None,
+                            doc_id: int | None, first_seen_at: str) -> tuple[int, str]:
+    """Record one corporate action. Returns (action_id, 'inserted' | 'unchanged').
+
+    A different value for an action already recorded (same security, type and ex_date) raises
+    IdentityConflict: moves computed before are reproducible only if the row is never rewritten.
+    """
+    row = conn.execute('SELECT * FROM corporate_action WHERE security_id = ? AND action_type = ? AND ex_date = ?',
+                       (security_id, action_type, ex_date)).fetchone()
+    values = {'new_per_old': new_per_old, 'cash_amount': cash_amount, 'currency': currency}
+    if row is None:
+        cur = conn.execute(
+            'INSERT INTO corporate_action (security_id, action_type, ex_date, new_per_old, cash_amount, currency,'
+            ' doc_id, first_seen_at) VALUES (?,?,?,?,?,?,?,?)',
+            (security_id, action_type, ex_date, new_per_old, cash_amount, currency, doc_id, first_seen_at))
+        return cur.lastrowid, 'inserted'
+    changed = {k: (row[k], v) for k, v in values.items() if row[k] != v}
+    if changed:
+        raise IdentityConflict(
+            f"{action_type} ex {ex_date} for security_id {security_id} is already recorded with "
+            + ', '.join(f"{k}={old!r}" for k, (old, _) in changed.items())
+            + '; a recorded corporate action is not rewritten (moves computed from it must stay reproducible)')
+    return row['action_id'], 'unchanged'
+
+
+def corporate_actions_as_of(conn: sqlite3.Connection, security_id: int, as_of: str) -> list[sqlite3.Row]:
+    """The security's corporate actions with first_seen_at <= as_of, by ex_date."""
+    return conn.execute('SELECT * FROM corporate_action WHERE security_id = ? AND first_seen_at <= ?'
+                        ' ORDER BY ex_date, action_id', (security_id, as_of)).fetchall()
 
 
 # ── coverage checks and ingest runs ──────────────────────────────────────────

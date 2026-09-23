@@ -1,0 +1,6 @@
+# vendor: Example Data Co end-of-day export (synthetic)
+# source_url: https://data.example.com/eod/TDCA
+# as_of: 2026-09-22T22:15:00-04:00
+security_key,trade_date,open,high,low,close,volume,adj_close
+US:NASDAQ:TDCA,2026-09-21,100.00,101.50,99.20,100.00,1000000,99.80
+US:NASDAQ:TDCA,2026-09-22,100.50,110.40,100.10,108.40,2600000,108.18
