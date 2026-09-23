@@ -465,7 +465,7 @@ Work directly on `main` in small commits, checking CI after each milestone. Keep
 - *Pass:* loading a 1 NSE + 1 US watchlist twice gives identical rows; a symbol change adds a `security_symbol` row without moving history; the calendar returns expected sessions for fixture dates, with holidays excluded.
 
 **Milestone 2 — Event foundation and coverage.**
-- *Files:* `src/sources/sec_submissions.py` (keeps `acceptanceDateTime`; retries; writes `ingest_run` and `coverage_check`), `src/sources/manual_events.py`, `src/core/coverage.py` (§4.4 states), a `src/cli.py` with `ingest`, `checked` and `events` (a plain-text listing of events and coverage states; no Markdown brief yet), `tests/fixtures/sec/*.json`, `tests/fixtures/manual_events.csv`, `tests/test_events.py`, `tests/test_coverage.py`, `tests/test_asof.py`.
+- *Files (as built):* `src/sources/sec_submissions.py` (keeps `acceptanceDateTime`; retries; one fetch per CIK; writes `ingest_run` and `coverage_check`), `src/sources/manual_events.py` (CSV events and manual checks), `src/core/coverage.py` (§4.4 states), `src/cli.py` with `ingest`, `checked` and `events` (plain text; no Markdown brief yet), `src/store/` schema v2, `tests/fixtures/sec/` (synthetic submissions JSON, see its README), `tests/support.py` (offline HTTP fake), `tests/test_events.py` (SEC, versions, as-of, backfill, migration), `tests/test_coverage.py` (states, manual checks, CLI).
 - *Cases:* **C1–C7**, **V1**, **B1**, **R1**, A6 (state part), and duplicate-ingest tests. Q3 is resolved (§14).
 - *Pass:* the cases above pass, and `python -m src.cli events --as-of …` against fixtures prints each security with its coverage state.
 
