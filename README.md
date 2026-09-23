@@ -26,7 +26,7 @@ pip install -r requirements-dev.txt     # includes requirements.txt
 python -m pytest tests/ -v
 ```
 
-Last observed local result: **77 passed, 2 warnings** (2026-09-23, Windows 11, Python 3.13.5). That is 31 insider-research tests plus 46 for the store, identity and calendar. CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs `pyflakes src/ tests/`, then pytest, then `pip-audit --strict`. All three passed on `63cf01e` ([run 35858038008](https://github.com/devdiv07/MIRROR/actions/runs/35858038008)). CI had been red at the pyflakes step since `e068c91` until then. `legacy/` needs `pip install -r requirements-legacy.txt`, which is not audited in CI; see the note in that file.
+Last observed local result: **77 passed, 2 warnings** (2026-09-23, Windows 11, Python 3.13.5). That is 31 insider-research tests plus 46 for the store, identity and calendar. CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs `pyflakes src/ tests/`, then pytest, then `pip-audit --strict`. All three passed on `d3898bc` with 77 tests ([run 35860281919](https://github.com/devdiv07/MIRROR/actions/runs/35860281919)). CI had been red at the pyflakes step from `e068c91` until `63cf01e`. `legacy/` needs `pip install -r requirements-legacy.txt`, which is not audited in CI; see the note in that file.
 
 ## Running the insider research pipeline (optional, research only)
 
