@@ -20,6 +20,7 @@ Identifier choices (recorded in ADR 0001 §6, Q6):
 
 from __future__ import annotations
 
+import math
 import re
 from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
@@ -118,8 +119,9 @@ def _optional_text(value, where: str) -> str | None:
 def _trigger(value, where: str) -> float | None:
     if value is None:
         return None
-    if isinstance(value, bool) or not isinstance(value, (int, float)) or value <= 0:
-        raise WatchlistError(f"{where}: move_trigger_pct must be a positive number")
+    if (isinstance(value, bool) or not isinstance(value, (int, float))
+            or not math.isfinite(value) or value <= 0):
+        raise WatchlistError(f"{where}: move_trigger_pct must be a finite positive number")
     return float(value)
 
 

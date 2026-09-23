@@ -263,6 +263,9 @@ def test_dropped_security_is_deactivated_not_deleted(conn, tmp_path):
     (lambda y: y.replace('{symbol: TSTU, valid_from: 2026-01-01}',
                          '{symbol: TSTU, valid_from: 2026-01-01, valid_to: 2025-12-01}'), 'after valid_from'),
     (lambda y: y.replace('move_trigger_pct: 8', 'move_trigger_pct: 0'), 'positive'),
+    (lambda y: y.replace('move_trigger_pct: 8', 'move_trigger_pct: .nan'), 'finite'),
+    (lambda y: y.replace('move_trigger_pct: 8', 'move_trigger_pct: .inf'), 'finite'),
+    (lambda y: y.replace('move_trigger_pct: 5', 'move_trigger_pct: -.inf'), 'finite'),
     (lambda y: y.replace('version: 1', 'version: 2'), 'version'),
 ])
 def test_invalid_watchlists_are_rejected(tmp_path, mutate, message):
