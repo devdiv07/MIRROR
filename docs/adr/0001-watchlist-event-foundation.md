@@ -284,6 +284,12 @@ ingest_run(run_id INTEGER PRIMARY KEY, source TEXT, started_at TEXT, finished_at
 
 India and US do **not** share one filing rulebook. `event_type` is a small common vocabulary. The market-specific detail (8-K item numbers, NSE subject line, Form 4 code) stays in `fields_json` and `subject`.
 
+**Milestone 1 amendment (2026-09-23, as built in [src/store/schema.sql](../../src/store/schema.sql)).** Three changes to the draft above; the schema file is now the reference.
+- **Stable key.** `security` is keyed by a MIRROR-assigned `security_key` (unique, never changed), not by `UNIQUE (company_id_type, company_id, exchange)`. One SEC CIK can cover several listed share classes on the same exchange: 1,449 of 7,992 CIKs in the tracked `data/company_tickers.json` map to more than one ticker, e.g. GOOGL and GOOG both map to CIK 1652044 **[run]**. So the draft key would have collided. The CIK stays as `company_id` because SEC ingestion needs it.
+- **India identifier (Q6, provisional).** No issuer-level identifier is used yet. The NSE symbol lives only in `security_symbol`. The ISIN, if given, is stored as an attribute, validated for format and ISO 6166 check digit, and not used as a key. MIRROR does not rely on any external identifier staying stable across corporate actions **[inf]**. ADR 0002 may revisit this.
+- **Symbol history semantics.** Periods are half-open `[valid_from, valid_to)`. `valid_from` is the first day the owner asserts the mapping, not necessarily the listing date. A period can be closed once (`valid_to` set) but never moved or reassigned. Overlaps are rejected per security and per `(exchange, symbol)`, and the whole watchlist load rolls back ([src/store/db.py](../../src/store/db.py)).
+- **Also added:** `created_at`/`updated_at` on `security`, `active` on `watchlist_item` (a security dropped from the watchlist file is deactivated, not deleted), and `PRAGMA user_version = 1` as the schema version. Thesis or horizon edits from the watchlist file update the item and append a `feedback` row (`thesis_update`) with the old and new values.
+
 **Why SQLite.** There is a single user and a single writer, and the data is small (a 20-stock watchlist). It is stdlib with no server, the whole database is one file that can be backed up or attached to a bug report, and WAL mode allows readers during a write. **[inf]**
 
 **Concrete triggers to consider PostgreSQL** (any one):
@@ -310,6 +316,8 @@ All functions are pure, take an explicit `as_of`, and write `calc_version`. The 
   - *Halted or suspended*: a session is expected, and the bar is missing or has zero volume while the benchmark traded. Flag `no_trade_possible_suspension` **[unv cause]**. No move is computed.
   - *Price bands (India)*: band data has no confirmed source **[unv]**. The first slice does not claim a band hit. Later, if a permitted band source exists, flag `at_band_limit`.
   - *Symbol change*: `security_symbol` gains a new row. The price history stays attached to `security_id`.
+  - *Special sessions* (built in Milestone 1): trading on a normally closed day is a `special` session in the holiday file, for example NSE's Sunday 2026-02-01 Budget session. If its timings are not yet published (NSE Muhurat 2026-11-08), `open`/`close` are unknown and timing tags for that day must say so.
+  - *Uncovered years*: [src/core/calendar.py](../../src/core/calendar.py) raises `CalendarNotCovered` for a year with no holiday list, rather than treating it as holiday-free. NSE and Nasdaq are configured for 2026 only, NYSE for 2026–2028. Each new year must be added from the exchange's publication before the pilot crosses into it.
 
 ## 8. Explanation contract
 
@@ -436,7 +444,7 @@ Work directly on `main` in small commits, checking CI after each milestone. Keep
 - *Finding when pip-audit first ran (2026-09-23):* `pip-audit --strict` failed on **PYSEC-2026-3740** (CVE-2026-81726, GHSA-8mgp-746c-j5xp) in `nltk 3.10.3`. `textblob` pulls it in, and no fixed release exists **[run]**. `textblob` is imported only by `legacy/news_sentiment.py` and the root `NEWS_SENTIMENT.PY` **[code]**. *Resolution:* `textblob` moved from `requirements.txt` to a new `requirements-legacy.txt`, so the CI and security-scan environments no longer install `nltk`. The audit is not suppressed. After the split, a fresh venv with CI's install command passed pyflakes, pytest (31 passed) and `pip-audit --strict` ("No known vulnerabilities found") **[run]**. Running legacy code now needs `pip install -r requirements-legacy.txt`, which still carries the advisory.
 
 **Milestone 1 — Store, identity, calendar config.**
-- *Files:* `src/store/schema.sql` (all §6 tables), `src/store/db.py` (WAL, `busy_timeout`, idempotent upserts, as-of readers), `src/core/identity.py`, `src/core/calendar.py`, `config/watchlist.example.yaml`, `config/exchanges.yaml` and `config/holidays/{NSE,NYSE}.csv` (each citing its primary source, which closes Q4), `tests/test_store_identity.py`.
+- *Files:* `src/store/schema.sql` (all §6 tables), `src/store/db.py` (WAL, `busy_timeout`, idempotent upserts, as-of readers), `src/core/identity.py`, `src/core/calendar.py`, `config/watchlist.example.yaml`, `config/exchanges.yaml` and `config/holidays/{NSE,NYSE,NASDAQ}.csv` (each citing its primary source, which closes Q4), `tests/test_store_identity.py`, `tests/test_calendar.py`.
 - *Pass:* loading a 1 NSE + 1 US watchlist twice gives identical rows; a symbol change adds a `security_symbol` row without moving history; the calendar returns expected sessions for fixture dates, with holidays excluded.
 
 **Milestone 2 — Event foundation and coverage.**
@@ -463,9 +471,9 @@ Work directly on `main` in small commits, checking CI after each milestone. Keep
 | Q1 | Which India disclosure route is permitted for MIRROR's use: NSE RSS polling (needs written confirmation), an NSE Data & Analytics corporate-data subscription, BSE, a broker API, or none? What does each cost? | Any India time-saving pilot; India automation | §4.3 → ADR 0002, before Milestone 4 ships |
 | Q2 | Which daily price source (India and US, including benchmarks) has terms that permit this use? | Naming an upstream source in cards (until then it shows as "unknown"); any shared output | Before the US pilot, if possible; otherwise cards say "unknown" |
 | Q3 | Is SEC `acceptanceDateTime` with `Z` actually UTC? | Exact timing tags for US events near session boundaries | Milestone 2 |
-| Q4 | Exchange session times and holiday lists: which primary sources? | `calendar.py` config | Milestone 1 |
+| Q4 | Exchange session times and holiday lists: which primary sources? | `calendar.py` config | **Resolved in Milestone 1:** NSE market-timings page and circulars NSE/CMTR/71775, 72260, 72349; NYSE hours-calendars page; Nasdaq holiday pages. All cited in [config/exchanges.yaml](../../config/exchanges.yaml) |
 | Q5 | India macro sources (RBI, MOSPI) and their terms | Macro in slice 2 | Later |
-| Q6 | Which issuer identifier to use for India (ISIN vs exchange symbol vs company registration number)? | Robust symbol-change handling in India | Milestone 1 (provisional), ADR 0002 |
+| Q6 | Which issuer identifier to use for India (ISIN vs exchange symbol vs company registration number)? | Robust symbol-change handling in India | **Provisional (Milestone 1):** MIRROR `security_key` plus NSE symbol history; ISIN as a validated attribute, not a key (§6 amendment). Revisit in ADR 0002 |
 
 ## 15. Consequences
 

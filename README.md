@@ -10,7 +10,8 @@
 |---|---|---|---|
 | Insider conviction research pipeline (US) | `src/` | SEC Form 4 fetch → parse → enrich → 7 weighted scorers → `results/insider_signals_phase2.csv` | **Research only. Unvalidated, with verified defects** (sign/penalty error, Form 4 code F counted as a sale, cluster look-ahead, current market cap on historical trades). See [ADR §12](docs/adr/0001-watchlist-event-foundation.md#12-separate-track-insider-signal-research-blockers). Do not use its scores as signals. |
 | Legacy dissonance prototype | `legacy/` | News sentiment + options/price signals + a dissonance score over 10 hard-coded US mega-caps | Prototype. It does **not** use the `src/` insider scores, and `legacy/run_mirror.py` calls `SEC_INSIDER.PY`, which is not in the repository. Its dependencies are in `requirements-legacy.txt` (textblob → nltk, which has an open advisory: PYSEC-2026-3740). |
-| Watchlist research product | — | Watchlist, dated events, adjusted moves, evidence-labelled explanations, daily brief | **Planned** as four milestones after the CI repair ([FOCUS.md](docs/FOCUS.md) steps 2–5) |
+| Store, identity and calendar | `src/store/`, `src/core/`, `config/exchanges.yaml`, `config/holidays/` | SQLite schema (ADR §6), stable security keys with symbol history, watchlist loading, and NSE/NYSE/Nasdaq sessions and holidays with cited sources | **Built (Milestone 1), tested offline.** Not yet used by any ingestion or brief |
+| Watchlist research product | — | Dated events, adjusted moves, evidence-labelled explanations, daily brief | **Planned** ([FOCUS.md](docs/FOCUS.md) steps 3–5) |
 
 The earlier 5-layer vision and the insider-IC roadmap remain available as dated research direction. See [docs/INDEX.md](docs/INDEX.md).
 
@@ -25,7 +26,7 @@ pip install -r requirements-dev.txt     # includes requirements.txt
 python -m pytest tests/ -v
 ```
 
-Last observed result: **31 passed, 2 warnings**, locally (2026-09-23, Windows 11, Python 3.13.5) and in CI. The tests cover the insider parser, enrichment and scorers only. CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs `pyflakes src/ tests/`, then pytest, then `pip-audit --strict`. All three passed on `63cf01e` ([run 35858038008](https://github.com/devdiv07/MIRROR/actions/runs/35858038008)). CI had been red at the pyflakes step since `e068c91` until then. `legacy/` needs `pip install -r requirements-legacy.txt`, which is not audited in CI; see the note in that file.
+Last observed local result: **77 passed, 2 warnings** (2026-09-23, Windows 11, Python 3.13.5). That is 31 insider-research tests plus 46 for the store, identity and calendar. CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs `pyflakes src/ tests/`, then pytest, then `pip-audit --strict`. All three passed on `63cf01e` ([run 35858038008](https://github.com/devdiv07/MIRROR/actions/runs/35858038008)). CI had been red at the pyflakes step since `e068c91` until then. `legacy/` needs `pip install -r requirements-legacy.txt`, which is not audited in CI; see the note in that file.
 
 ## Running the insider research pipeline (optional, research only)
 
